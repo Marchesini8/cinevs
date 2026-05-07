@@ -43,7 +43,7 @@ O projeto ja esta pronto para deploy no Railway.
 ```env
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 JWT_SECRET=uma-chave-grande-e-secreta
-CLIENT_URL=https://seu-app.up.railway.app
+CLIENT_URL=https://cinevs.up.railway.app
 GOOGLE_CLIENT_ID=179853125831-5nnp0kn44t6c2cq5k2f6cp2c1frkeaog.apps.googleusercontent.com
 VITE_GOOGLE_CLIENT_ID=179853125831-5nnp0kn44t6c2cq5k2f6cp2c1frkeaog.apps.googleusercontent.com
 ```
@@ -62,9 +62,9 @@ O botao "Continuar com Google" usa Google Identity Services. No Google Cloud Con
 adicione os dominios do app em **Authorized JavaScript origins**:
 
 ```txt
-http://127.0.0.1:5173
 http://localhost:5173
-https://seu-app.up.railway.app
+http://127.0.0.1:5173
+https://cinevs.up.railway.app
 ```
 
 Nao precisa de `GOOGLE_CLIENT_SECRET` para este fluxo. O backend recebe o token do

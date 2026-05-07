@@ -42,6 +42,17 @@ app.use(
 );
 app.use(express.json());
 
+function ensureDatabaseConfigured(res) {
+  if (!process.env.DATABASE_URL) {
+    res.status(503).json({
+      message: "Banco de dados nao configurado. Configure DATABASE_URL no Railway.",
+    });
+    return false;
+  }
+
+  return true;
+}
+
 async function initDatabase() {
   if (!process.env.DATABASE_URL) {
     console.warn("DATABASE_URL nao configurada. Configure o PostgreSQL do Railway no .env.");
@@ -109,7 +120,11 @@ async function verifyGoogleCredential(credential) {
   );
   const payload = await response.json().catch(() => ({}));
 
-  if (!response.ok || payload.aud !== googleClientId || payload.email_verified !== "true") {
+  if (
+    !response.ok ||
+    payload.aud !== googleClientId ||
+    !["true", true].includes(payload.email_verified)
+  ) {
     throw new Error("Token do Google invalido.");
   }
 
@@ -122,10 +137,18 @@ async function verifyGoogleCredential(credential) {
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({
+    ok: true,
+    databaseConfigured: Boolean(process.env.DATABASE_URL),
+    googleConfigured: Boolean(googleClientId),
+  });
 });
 
 app.post("/api/auth/register", async (req, res) => {
+  if (!ensureDatabaseConfigured(res)) {
+    return;
+  }
+
   const { name, email, password } = req.body;
 
   if (!name || !email || !password) {
@@ -158,6 +181,10 @@ app.post("/api/auth/register", async (req, res) => {
 });
 
 app.post("/api/auth/login", async (req, res) => {
+  if (!ensureDatabaseConfigured(res)) {
+    return;
+  }
+
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -192,6 +219,10 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 app.get("/api/auth/me", requireAuth, async (req, res) => {
+  if (!ensureDatabaseConfigured(res)) {
+    return;
+  }
+
   const result = await pool.query(
     `select id, name, email, provider, avatar_url
      from users
@@ -208,6 +239,10 @@ app.get("/api/auth/me", requireAuth, async (req, res) => {
 });
 
 app.post("/api/auth/google", async (req, res) => {
+  if (!ensureDatabaseConfigured(res)) {
+    return;
+  }
+
   const { credential } = req.body;
 
   if (!credential) {
