@@ -38,6 +38,15 @@ import "./styles.css";
 const authStorageKey = "cinevs:auth";
 const profilesStorageKey = "cinevs:profiles";
 const selectedProfileStorageKey = "cinevs:selected-profile";
+const sampleVideoUrl =
+  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
+const sampleVideoUrlAlt =
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4";
+const sampleVideoUrlThird =
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4";
+const sampleVideoUrlFourth =
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4";
+const googleLoginEnabled = false;
 const googleClientId =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
   "179853125831-5nnp0kn44t6c2cq5k2f6cp2c1frkeaog.apps.googleusercontent.com";
@@ -87,7 +96,7 @@ const continueWatching = [
     episode: "Temporada 1 · Episódio 1 — O Nome do Jogo",
     progress: 42,
     image: "/assets/the-boys-banner.png",
-    video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    video: sampleVideoUrl,
     synopsis:
       "Na trama, conhecemos um mundo em que super-heróis são as maiores celebridades do planeta, e rotineiramente abusam dos seus poderes ao invés de usá-los para o bem.",
   },
@@ -147,18 +156,39 @@ const theBoysDetail = {
 };
 
 const theBoysEpisodes = [
-  ["1. O Nome do Jogo", "Quando um Super mata o amor de sua vida, o vendedor Hughie encara um mundo novo.", "1h 2min"],
-  ["2. Cherry", "Os Caras pegam um super-herói, Luz-Estrela se vinga e Capitão Pátria fica atento.", "59min"],
-  ["3. Na Fissura", "É a corrida do século. Trem-Bala disputa o título enquanto segredos aparecem.", "55min"],
-  ["4. A Fêmea da Espécie", "Em um episódio especial, os Caras seguem uma pista perigosa.", "56min"],
-  ["5. Bom Para a Alma", "Os Caras vão para a feira Eu Acredito atrás de respostas.", "1h 0min"],
-  ["6. Os Inocentes", "Os Super na América mostram sua face pública enquanto tudo desanda.", "1h 0min"],
-  ["7. Sociedade da Autopreservação", "Nunca confie em um Super fracassado. Os Caras aprendem a lição.", "56min"],
-  ["8. Achou!", "Final de temporada com segredos revelados e conflitos abertos.", "1h 5min"],
-].map(([title, description, duration], index) => ({
+  [
+    "1. O Nome do Jogo",
+    "Quando um Super mata o amor de sua vida, o vendedor Hughie encara um mundo novo.",
+    "1h 2min",
+    sampleVideoUrl,
+  ],
+  [
+    "2. Cherry",
+    "Os Caras pegam um super-herói, Luz-Estrela se vinga e Capitão Pátria fica atento.",
+    "59min",
+    sampleVideoUrlAlt,
+  ],
+  [
+    "3. Na Fissura",
+    "É a corrida do século. Trem-Bala disputa o título enquanto segredos aparecem.",
+    "55min",
+    sampleVideoUrlThird,
+  ],
+  [
+    "4. A Fêmea da Espécie",
+    "Em um episódio especial, os Caras seguem uma pista perigosa.",
+    "56min",
+    sampleVideoUrlFourth,
+  ],
+  ["5. Bom Para a Alma", "Os Caras vão para a feira Eu Acredito atrás de respostas.", "1h 0min", sampleVideoUrl],
+  ["6. Os Inocentes", "Os Super na América mostram sua face pública enquanto tudo desanda.", "1h 0min", sampleVideoUrlAlt],
+  ["7. Sociedade da Autopreservação", "Nunca confie em um Super fracassado. Os Caras aprendem a lição.", "56min", sampleVideoUrlThird],
+  ["8. Achou!", "Final de temporada com segredos revelados e conflitos abertos.", "1h 5min", sampleVideoUrlFourth],
+].map(([title, description, duration, video], index) => ({
   title,
   description,
   duration,
+  video,
   image: index === 0 ? "/assets/the-boys-banner.png" : continueWatching[index % continueWatching.length].image,
 }));
 
@@ -180,6 +210,39 @@ const relatedTitles = [
     image: "https://image.tmdb.org/t/p/w500/mTAiBJGg8mqEfnYHHbi37ZoRSZm.jpg",
   },
 ];
+
+const featuredChannels = [
+  {
+    title: "CINEVS Action",
+    meta: "Ao vivo agora | Filmes de acao",
+    image: "https://image.tmdb.org/t/p/w780/d4P3cIAbGRXUkyD6p3T99X9Gr8X.jpg",
+  },
+  {
+    title: "CINEVS Series",
+    meta: "Maratona | Episodios em sequencia",
+    image: "/assets/the-boys-banner.png",
+  },
+  {
+    title: "CINEVS Kids",
+    meta: "Animacao | Familia",
+    image: "https://image.tmdb.org/t/p/w780/vpnVM9B6NMmQpWeZvzLvDESb2QY.jpg",
+  },
+  {
+    title: "CINEVS Premiere",
+    meta: "Estreias | Destaques da semana",
+    image: heroMovie.image,
+  },
+];
+
+const myListTitles = [theBoysDetail, heroMovie, ...catalog.slice(0, 3)];
+const allBrowseTitles = Array.from(
+  new Map(
+    [theBoysDetail, heroMovie, ...continueWatching.slice(1), ...catalog, ...relatedTitles].map((item) => [
+      item.title,
+      item,
+    ]),
+  ).values(),
+);
 
 async function apiRequest(path, options = {}) {
   const response = await fetch(path, {
@@ -331,7 +394,7 @@ function App() {
 
   return (
     <main className="app">
-      {["home", "account", "details"].includes(view) && (
+      {["home", "account", "details", "catalog", "list", "channels", "search"].includes(view) && (
         <Header
           user={auth.user}
           view={view}
@@ -378,9 +441,55 @@ function App() {
           item={detailItem || theBoysDetail}
           onBack={() => setView("home")}
           onWatch={handleWatch}
+          onOpenDetails={openDetails}
         />
       ) : view === "account" ? (
         <AccountScreen user={auth.user} profiles={profiles} selectedProfileId={selectedProfileId} />
+      ) : view === "catalog" ? (
+        <BrowsePage
+          title="Catalogo"
+          subtitle="Filmes, series e destaques reunidos para escolher sem voltar para a home."
+          rows={[
+            ["Continue Assistindo", watchingShelf],
+            ["Em Alta", catalog],
+            ["Relacionados", relatedTitles],
+          ]}
+          onOpenDetails={openDetails}
+          onWatch={handleWatch}
+        />
+      ) : view === "list" ? (
+        <BrowsePage
+          title="Minha Lista"
+          subtitle="Seus titulos salvos e atalhos para continuar assistindo."
+          rows={[
+            ["Salvos", myListTitles],
+            ["Continuar agora", watchingShelf],
+          ]}
+          onOpenDetails={openDetails}
+          onWatch={handleWatch}
+        />
+      ) : view === "channels" ? (
+        <BrowsePage
+          title="Canais"
+          subtitle="Programacao ao vivo, maratonas e canais tematicos CINEVS."
+          rows={[
+            ["Ao vivo", featuredChannels],
+            ["Sugestoes para assistir", catalog],
+          ]}
+          onOpenDetails={openDetails}
+          onWatch={handleWatch}
+        />
+      ) : view === "search" ? (
+        <BrowsePage
+          title="Pesquisa"
+          subtitle="Explore rapidamente tudo que ja esta disponivel no catalogo."
+          rows={[
+            ["Todos os titulos", allBrowseTitles],
+          ]}
+          onOpenDetails={openDetails}
+          onWatch={handleWatch}
+          searchable
+        />
       ) : (
         <>
           <section className="hero" style={{ "--hero-image": `url(${heroMovie.image})` }}>
@@ -491,7 +600,75 @@ function App() {
   );
 }
 
-function TitleDetailsScreen({ item, onBack, onWatch }) {
+function BrowsePage({ title, subtitle, rows, onOpenDetails, onWatch, searchable = false }) {
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLowerCase();
+
+  function filterItems(items) {
+    if (!normalizedQuery) {
+      return items;
+    }
+
+    return items.filter((item) =>
+      `${item.title} ${item.meta || ""} ${item.episode || ""}`
+        .toLowerCase()
+        .includes(normalizedQuery),
+    );
+  }
+
+  return (
+    <section className="browse-page">
+      <div className="browse-shell">
+        <header className="browse-header">
+          <div>
+            <h1>{title}</h1>
+            <p>{subtitle}</p>
+          </div>
+
+          {searchable && (
+            <label className="browse-search">
+              <Search size={18} />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Buscar titulo"
+              />
+            </label>
+          )}
+        </header>
+
+        {rows.map(([rowTitle, items]) => {
+          const visibleItems = filterItems(items);
+
+          return (
+            <section className="browse-row" key={rowTitle}>
+              <div className="section-title">
+                <h2>{rowTitle}</h2>
+              </div>
+              <div className="browse-grid">
+                {visibleItems.map((item) => (
+                  <article className="browse-card" key={`${rowTitle}-${item.title}`}>
+                    <button type="button" onClick={() => onOpenDetails(item)}>
+                      <img src={item.background || item.image} alt="" />
+                      <span>{item.meta || item.episode || "Disponivel agora"}</span>
+                      <strong>{item.title}</strong>
+                    </button>
+                    <button className="browse-play" type="button" onClick={() => onWatch(item)}>
+                      <Play fill="currentColor" size={17} />
+                      Assistir
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function TitleDetailsScreen({ item, onBack, onWatch, onOpenDetails }) {
   const isTheBoys = item.title === "The Boys";
   const detail = isTheBoys
     ? theBoysDetail
@@ -589,7 +766,17 @@ function TitleDetailsScreen({ item, onBack, onWatch }) {
         <div className="episodes-row">
           {theBoysEpisodes.map((episode, index) => (
             <article className="episode-card" key={episode.title}>
-              <button onClick={() => onWatch({ ...theBoysDetail, episode: episode.title })}>
+              <button
+                onClick={() =>
+                  onWatch({
+                    ...theBoysDetail,
+                    episode: episode.title,
+                    image: episode.image,
+                    video: episode.video,
+                    synopsis: episode.description,
+                  })
+                }
+              >
                 <img src={episode.image} alt="" />
                 <span>{episode.duration}</span>
               </button>
@@ -604,7 +791,7 @@ function TitleDetailsScreen({ item, onBack, onWatch }) {
         <h2>Relacionados</h2>
         <div className="related-row">
           {relatedTitles.map((related) => (
-            <article className="related-card" key={related.title}>
+            <article className="related-card" key={related.title} onClick={() => onOpenDetails(related)}>
               <img src={related.image} alt="" />
               <h3>{related.title}</h3>
             </article>
@@ -817,6 +1004,7 @@ function PlayerScreen({ item, onBack }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [videoError, setVideoError] = useState("");
   const [volume, setVolume] = useState(70);
   const [quality, setQuality] = useState("1080p");
   const [speed, setSpeed] = useState("1x");
@@ -825,6 +1013,7 @@ function PlayerScreen({ item, onBack }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const progress = duration ? (currentTime / duration) * 100 : 0;
+  const videoSrc = item.video || sampleVideoUrl;
 
   useEffect(() => {
     if (videoRef.current) {
@@ -832,6 +1021,13 @@ function PlayerScreen({ item, onBack }) {
       videoRef.current.playbackRate = Number(speed.replace("x", ""));
     }
   }, [volume, speed]);
+
+  useEffect(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setVideoError("");
+  }, [videoSrc]);
 
   async function togglePlay() {
     const video = videoRef.current;
@@ -842,8 +1038,8 @@ function PlayerScreen({ item, onBack }) {
     }
 
     if (video.paused) {
-      await video.play().catch(() => undefined);
-      setIsPlaying(true);
+      const played = await video.play().catch(() => null);
+      setIsPlaying(Boolean(played) || !video.paused);
     } else {
       video.pause();
       setIsPlaying(false);
@@ -897,18 +1093,19 @@ function PlayerScreen({ item, onBack }) {
   return (
     <section className="player-page">
       <video
+        key={videoSrc}
         ref={videoRef}
         className="player-video"
         poster={item.image}
+        preload="metadata"
+        playsInline
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
         onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
+        onError={() => setVideoError("Nao foi possivel carregar este video. Tente outro titulo.")}
       >
-        <source
-          src={item.video || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
-          type="video/mp4"
-        />
+        <source src={videoSrc} type="video/mp4" />
       </video>
 
       <div className="player-vignette" />
@@ -983,11 +1180,17 @@ function PlayerScreen({ item, onBack }) {
         <p>{item.synopsis || "Continue assistindo de onde parou, altere qualidade, audio, legenda, velocidade e volume sem sair do player."}</p>
       </aside>
 
-      <button
-        className={`buffer-loader ${isPlaying ? "hidden" : ""}`}
-        aria-label="Reproduzir"
-        onClick={togglePlay}
-      />
+      {videoError ? (
+        <div className="player-error">{videoError}</div>
+      ) : (
+        <button
+          className={`play-overlay ${isPlaying ? "hidden" : ""}`}
+          aria-label="Reproduzir"
+          onClick={togglePlay}
+        >
+          <Play fill="currentColor" size={34} />
+        </button>
+      )}
 
       <footer className="player-controls">
         <div className="timeline-row">
@@ -1091,6 +1294,10 @@ function AuthScreen({ onAuthenticated }) {
   const isRegister = mode === "register";
 
   useEffect(() => {
+    if (!googleLoginEnabled) {
+      return undefined;
+    }
+
     let mounted = true;
 
     async function setupGoogleLogin() {
@@ -1184,7 +1391,18 @@ function AuthScreen({ onAuthenticated }) {
           </p>
         </div>
 
-        <div className="google-button-wrap" ref={googleButtonRef} />
+        {googleLoginEnabled ? (
+          <div className="google-button-wrap" ref={googleButtonRef} />
+        ) : (
+          <button className="google-button disabled" type="button" disabled>
+            <span className="google-avatar">G</span>
+            <span>
+              <strong>Google em breve</strong>
+              <small>Use email e senha por enquanto</small>
+            </span>
+            <span className="google-mark">G</span>
+          </button>
+        )}
 
         <div className="auth-divider">
           <span />
@@ -1379,7 +1597,7 @@ function Header({ user, view, onNavigate, onLogout }) {
       </a>
 
       <nav className="nav-pills" aria-label="Navegacao principal">
-        <button className="icon-search" aria-label="Pesquisar">
+        <button className="icon-search" aria-label="Pesquisar" onClick={() => onNavigate("search")}>
           <Search size={22} />
         </button>
         <a
@@ -1392,9 +1610,36 @@ function Header({ user, view, onNavigate, onLogout }) {
         >
           Inicio
         </a>
-        <a href="#">Catalogo</a>
-        <a href="#">Minha Lista</a>
-        <a href="#">Canais</a>
+        <a
+          className={view === "catalog" ? "active" : ""}
+          href="#"
+          onClick={(event) => {
+            event.preventDefault();
+            onNavigate("catalog");
+          }}
+        >
+          Catalogo
+        </a>
+        <a
+          className={view === "list" ? "active" : ""}
+          href="#"
+          onClick={(event) => {
+            event.preventDefault();
+            onNavigate("list");
+          }}
+        >
+          Minha Lista
+        </a>
+        <a
+          className={view === "channels" ? "active" : ""}
+          href="#"
+          onClick={(event) => {
+            event.preventDefault();
+            onNavigate("channels");
+          }}
+        >
+          Canais
+        </a>
       </nav>
 
       <div className="profile-actions">

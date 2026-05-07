@@ -69,3 +69,11 @@ https://cinevs.up.railway.app
 
 Nao precisa de `GOOGLE_CLIENT_SECRET` para este fluxo. O backend recebe o token do
 Google, valida o `GOOGLE_CLIENT_ID` e cria ou vincula a conta automaticamente.
+
+## Videos dos episodios
+
+Nao envie arquivos `.mp4` grandes para o GitHub. O projeto ignora videos em
+`public/assets/*.mp4` para evitar erro no push e no deploy.
+
+Para trocar os videos dos episodios, hospede os arquivos em um storage externo e
+substitua as constantes de video em `src/main.jsx` por URLs HTTPS diretas.
