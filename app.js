@@ -21,9 +21,10 @@ const episodeImages = [
 
 const root = document.querySelector("#root");
 let auth = readStorage(authStorageKey);
-let view = auth?.token ? "home" : "auth";
+let view = "home";
 let selectedSeason = 1;
 let currentItem = null;
+let pendingPlaybackItem = null;
 
 const theBoysDetail = {
   title: "The Boys",
@@ -32,8 +33,9 @@ const theBoysDetail = {
   seasons: 5,
   age: "18",
   genres: ["Action & Adventure", "Sci-Fi & Fantasy"],
-  image: "./public/assets/the-boys-banner.png",
-  background: "./public/assets/the-boys-banner.png",
+  image: "./public/assets/the-boys-butcher-banner.jpg",
+  background: "./public/assets/the-boys-butcher-banner.jpg",
+  backgroundVideoId: "XzbWryxxn0c",
   synopsis:
     "Na trama, conhecemos um mundo em que super-herois sao as maiores celebridades do planeta, e rotineiramente abusam dos seus poderes ao inves de os usarem para o bem.",
 };
@@ -113,6 +115,24 @@ function getGoogleDriveEmbedUrl(url) {
   return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : "";
 }
 
+function getYoutubeBackgroundUrl(videoId) {
+  const params = new URLSearchParams({
+    autoplay: "1",
+    mute: "1",
+    controls: "0",
+    loop: "1",
+    playlist: videoId,
+    playsinline: "1",
+    rel: "0",
+    modestbranding: "1",
+    disablekb: "1",
+    fs: "0",
+    iv_load_policy: "3",
+  });
+
+  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+}
+
 async function apiRequest(path, options = {}) {
   const response = await fetch(path, {
     ...options,
@@ -133,11 +153,28 @@ async function apiRequest(path, options = {}) {
 function setView(nextView, item = null) {
   view = nextView;
   currentItem = item;
+  if (document.startViewTransition) {
+    document.startViewTransition(render);
+    return;
+  }
   render();
 }
 
+function animatePageIn() {
+  root.classList.remove("view-enter");
+  requestAnimationFrame(() => {
+    root.classList.add("view-enter");
+    window.setTimeout(() => root.classList.remove("view-enter"), 520);
+  });
+}
+
+function navigateWithFeedback(trigger, nextView, item = null) {
+  trigger?.classList.add("is-selecting");
+  window.setTimeout(() => setView(nextView, item), trigger ? 150 : 0);
+}
+
 function render() {
-  if (!auth?.token && view !== "auth") {
+  if (!auth?.token && view === "player") {
     view = "auth";
   }
 
@@ -161,6 +198,10 @@ function render() {
 
 function header() {
   const user = auth?.user || { name: "Usuario" };
+  const userInitial = user.name?.slice(0, 1).toUpperCase() || "U";
+  const avatarMarkup = user.avatarUrl
+    ? `<img src="${user.avatarUrl}" alt="" />`
+    : `<span>${userInitial}</span>`;
   return `
     <header class="topbar">
       <a class="brand" href="#" data-view="home" aria-label="CINEVS inicio">
@@ -169,16 +210,26 @@ function header() {
       <nav class="nav-pills" aria-label="Navegacao principal">
         <button class="icon-search" type="button" aria-label="Pesquisar">⌕</button>
         <a class="${view === "home" ? "active" : ""}" href="#" data-view="home">Inicio</a>
-        <a href="#" data-view="details">Series</a>
+        <a class="${view === "details" ? "active" : ""}" href="#" data-view="details">Series</a>
         <a href="#" data-view="home">Catalogo</a>
         <a href="#" data-view="home">Minha Lista</a>
       </nav>
       <div class="profile-actions">
-        <button class="notification" aria-label="Notificacoes">9+</button>
+        <button class="notification" aria-label="Notificacoes">
+          <span class="bell-icon">&#128276;</span>
+          <span class="notification-badge">9+</span>
+        </button>
         <div class="profile-menu">
-          <button class="avatar" aria-label="Perfil"><span>${user.name?.slice(0, 1).toUpperCase() || "U"}</span></button>
+          <button class="avatar" aria-label="Perfil">${avatarMarkup}</button>
           <div class="profile-dropdown" role="menu">
-            <button class="danger" type="button" data-action="logout">Sair da conta</button>
+            <button class="profile-summary" type="button" role="menuitem">
+              <span class="menu-avatar">${avatarMarkup}</span>
+              <span><strong>${user.name || "Usuario"}</strong><small>Alterar perfil</small></span>
+            </button>
+            <button type="button" role="menuitem"><span class="menu-icon">◎</span>Conta</button>
+            <button type="button" role="menuitem"><span class="menu-icon">≋</span>Feed</button>
+            <button type="button" role="menuitem"><span class="menu-icon">▣</span>Loja</button>
+            <button class="danger" type="button" role="menuitem" data-action="logout"><span class="menu-icon">&#8618;</span>Sair da conta</button>
           </div>
         </div>
       </div>
@@ -190,7 +241,15 @@ function bindHeaderActions() {
   document.querySelectorAll("[data-view]").forEach((link) => {
     link.addEventListener("click", (event) => {
       event.preventDefault();
-      setView(link.dataset.view);
+      navigateWithFeedback(link, link.dataset.view);
+    });
+
+    link.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      navigateWithFeedback(link, link.dataset.view);
     });
   });
 
@@ -198,7 +257,8 @@ function bindHeaderActions() {
     localStorage.removeItem(authStorageKey);
     localStorage.removeItem(selectedProfileStorageKey);
     auth = null;
-    setView("auth");
+    pendingPlaybackItem = null;
+    setView("home");
   });
 }
 
@@ -208,8 +268,8 @@ function renderAuth() {
       <section class="auth-card" aria-label="Acesso CINEVS">
         <a class="auth-brand" href="#"><img src="./public/assets/logo.png" alt="CINEVS" /></a>
         <div class="auth-copy">
-          <h1>Bem-vindo de volta</h1>
-          <p>Entre para acessar seu conteudo.</p>
+          <h1>${pendingPlaybackItem ? "Crie sua conta para assistir" : "Bem-vindo de volta"}</h1>
+          <p>${pendingPlaybackItem ? "Entre ou crie uma conta para liberar a reproducao." : "Entre para acessar seu conteudo."}</p>
         </div>
         <div class="google-button-wrap" id="googleButton"></div>
         <div class="auth-divider"><span></span><p>Mais opcoes de login</p><span></span></div>
@@ -218,6 +278,7 @@ function renderAuth() {
           <label class="field"><span>•</span><input name="password" type="password" placeholder="Senha" autocomplete="current-password" /></label>
           <button class="token-button">Entrar com email</button>
         </form>
+        <button class="switch-auth" type="button" data-action="back-to-catalog">Voltar para o catalogo</button>
         <p class="auth-message" id="authMessage" hidden></p>
       </section>
     </main>
@@ -225,6 +286,10 @@ function renderAuth() {
 
   setupGoogleLogin();
   document.querySelector("#loginForm").addEventListener("submit", handleLogin);
+  document.querySelector("[data-action='back-to-catalog']").addEventListener("click", () => {
+    pendingPlaybackItem = null;
+    setView("home");
+  });
 }
 
 function setupGoogleLogin() {
@@ -266,7 +331,9 @@ async function handleLogin(event) {
     });
     auth = data;
     localStorage.setItem(authStorageKey, JSON.stringify(data));
-    setView("home");
+    const nextItem = pendingPlaybackItem;
+    pendingPlaybackItem = null;
+    setView(nextItem ? "player" : "home", nextItem);
   } catch (error) {
     showAuthMessage(error.message);
   }
@@ -280,7 +347,9 @@ async function handleGoogleCredential(response) {
     });
     auth = data;
     localStorage.setItem(authStorageKey, JSON.stringify(data));
-    setView("home");
+    const nextItem = pendingPlaybackItem;
+    pendingPlaybackItem = null;
+    setView(nextItem ? "player" : "home", nextItem);
   } catch (error) {
     showAuthMessage(error.message);
   }
@@ -293,10 +362,14 @@ function showAuthMessage(message) {
 }
 
 function renderHome() {
+  const backgroundVideoUrl = getYoutubeBackgroundUrl(theBoysDetail.backgroundVideoId);
   root.innerHTML = `
     <main class="app">
       ${header()}
       <section class="hero" style="--hero-image: url('${theBoysDetail.background}')">
+        <div class="background-video" aria-hidden="true">
+          <iframe src="${backgroundVideoUrl}" title="" allow="autoplay; encrypted-media; picture-in-picture"></iframe>
+        </div>
         <div class="hero-content">
           <p class="eyebrow">Serie em destaque</p>
           <h1>${theBoysDetail.title}</h1>
@@ -305,13 +378,13 @@ function renderHome() {
             <strong>${theBoysDetail.year}</strong><span class="dot"></span><span class="genre">Temporada 1</span>
           </div>
           <p class="description">${theBoysDetail.synopsis}</p>
-          <button class="watch-button" type="button" data-view="details">▶ Assistir</button>
+          <button class="watch-button" type="button" data-play-featured>▶ Assistir</button>
         </div>
       </section>
       <section class="content-section first-section">
         <div class="section-title"><h2>Continue Assistindo</h2></div>
         <div class="watch-grid">
-          <article class="continue-card" data-view="details">
+          <article class="continue-card" role="button" tabindex="0" data-view="details" aria-label="Abrir The Boys">
             <img src="${theBoysDetail.image}" alt="" />
             <div class="card-shade"></div>
             <div class="continue-info">
@@ -329,7 +402,7 @@ function renderHome() {
           ${catalog
             .map(
               (item) => `
-                <article class="poster-card">
+                <article class="poster-card" role="button" tabindex="0" data-view="details" aria-label="Abrir ${item.title}">
                   <img src="${item.image}" alt="" />
                   <div class="poster-info"><h3>${item.title}</h3><p>${item.meta}</p></div>
                 </article>
@@ -341,15 +414,25 @@ function renderHome() {
     </main>
   `;
   bindHeaderActions();
+  document.querySelector("[data-play-featured]")?.addEventListener("click", (event) => {
+    const firstEpisode = episodesBySeason[1][0];
+    selectedSeason = 1;
+    playEpisode(firstEpisode, event.currentTarget);
+  });
+  animatePageIn();
 }
 
 function renderDetails() {
   const episodes = episodesBySeason[selectedSeason] || [];
+  const backgroundVideoUrl = getYoutubeBackgroundUrl(theBoysDetail.backgroundVideoId);
   root.innerHTML = `
     <main class="app">
       ${header()}
       <section class="title-details-page">
         <section class="title-hero-detail" style="--detail-bg: url('${theBoysDetail.background}')">
+          <div class="background-video detail-background-video" aria-hidden="true">
+            <iframe src="${backgroundVideoUrl}" title="" allow="autoplay; encrypted-media; picture-in-picture"></iframe>
+          </div>
           <div class="detail-copy">
             <h1>${theBoysDetail.title}</h1>
             <div class="detail-meta">
@@ -391,21 +474,23 @@ function renderDetails() {
 
   document.querySelectorAll("[data-season]").forEach((button) => {
     button.addEventListener("click", () => {
+      button.classList.add("is-selecting");
       selectedSeason = Number(button.dataset.season);
-      renderDetails();
+      window.setTimeout(renderDetails, 120);
     });
   });
 
-  document.querySelector("[data-play-first]")?.addEventListener("click", () => {
+  document.querySelector("[data-play-first]")?.addEventListener("click", (event) => {
     const firstEpisode = episodesBySeason[selectedSeason]?.[0] || episodesBySeason[1][0];
-    playEpisode(firstEpisode);
+    playEpisode(firstEpisode, event.currentTarget);
   });
 
   document.querySelectorAll("[data-episode]").forEach((button) => {
-    button.addEventListener("click", () => {
-      playEpisode(episodes[Number(button.dataset.episode)]);
+    button.addEventListener("click", (event) => {
+      playEpisode(episodes[Number(button.dataset.episode)], event.currentTarget);
     });
   });
+  animatePageIn();
 }
 
 function episodeCard(episode, index) {
@@ -421,13 +506,19 @@ function episodeCard(episode, index) {
   `;
 }
 
-function playEpisode(episode) {
+function playEpisode(episode, trigger = null) {
   currentItem = {
     ...theBoysDetail,
     ...episode,
     episode: `Temporada ${selectedSeason} · ${episode.title}`,
   };
-  setView("player", currentItem);
+  if (!auth?.token) {
+    pendingPlaybackItem = currentItem;
+    navigateWithFeedback(trigger, "auth", currentItem);
+    return;
+  }
+
+  navigateWithFeedback(trigger, "player", currentItem);
 }
 
 function renderPlayer(item) {
@@ -449,7 +540,10 @@ function renderPlayer(item) {
     </section>
   `;
 
-  document.querySelector("[data-back]").addEventListener("click", () => setView("details"));
+  document.querySelector("[data-back]").addEventListener("click", (event) => {
+    navigateWithFeedback(event.currentTarget, "details");
+  });
+  animatePageIn();
 }
 
 render();
