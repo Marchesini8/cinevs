@@ -25,6 +25,8 @@ let view = "home";
 let selectedSeason = 1;
 let currentItem = null;
 let pendingPlaybackItem = null;
+let headerCleanup = null;
+let featuredIndex = 0;
 
 const theBoysDetail = {
   title: "The Boys",
@@ -102,6 +104,252 @@ const catalog = [
   },
 ];
 
+const seriesCatalog = [
+  {
+    ...theBoysDetail,
+    meta: "2019 | 5 temporadas",
+    poster: "./public/assets/the-boys-banner.png",
+  },
+];
+
+const featuredSlides = [
+  {
+    type: "Serie em destaque",
+    title: theBoysDetail.title,
+    rating: theBoysDetail.rating,
+    year: theBoysDetail.year,
+    tags: ["Temporada 1"],
+    description: theBoysDetail.synopsis,
+    background: "https://img.youtube.com/vi/XzbWryxxn0c/maxresdefault.jpg",
+    logo: "./public/assets/the-boys-logo.png",
+    item: theBoysDetail,
+  },
+  {
+    type: "Filme em destaque",
+    title: "Duna: Parte Dois",
+    rating: "4.8",
+    year: "2024",
+    tags: ["Ficcao cientifica"],
+    description: "Paul Atreides se une a Chani e aos Fremen em uma jornada de vinganca, destino e sobrevivencia em Arrakis.",
+    background: "https://image.tmdb.org/t/p/w1280/xOMo8BRK7PfcJv9JCnx7s5hj0PX.jpg",
+    item: catalog[0],
+  },
+  {
+    type: "Filme em destaque",
+    title: "Godzilla Minus One",
+    rating: "4.7",
+    year: "2023",
+    tags: ["Acao"],
+    description: "Um Japao devastado encara uma nova ameaca colossal em meio ao trauma e a reconstrucao do pos-guerra.",
+    background: "https://image.tmdb.org/t/p/w1280/fY3lD0jM5AoHJMunjGWqJ0hRteI.jpg",
+    item: catalog[1],
+  },
+];
+
+const extraPosters = [
+  {
+    title: "Michael",
+    meta: "2026 | Drama",
+    image: "https://image.tmdb.org/t/p/w500/4a3oHj0wHxV5Uw95Ww7NnT4v8DU.jpg",
+  },
+  {
+    title: "Super Mario Galaxy: O Filme",
+    meta: "2026 | Animacao",
+    image: "https://image.tmdb.org/t/p/w500/qNBAXBIQlnOThrVvA6mA2B5ggV6.jpg",
+  },
+  {
+    title: "Avatar: Fogo e Cinzas",
+    meta: "2025 | Aventura",
+    image: "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
+  },
+  {
+    title: "Homem-Aranha: De Volta ao Lar",
+    meta: "2017 | Acao",
+    image: "https://image.tmdb.org/t/p/w500/9Fgs1ewIZiBBTto1XDHeBN0D8ug.jpg",
+  },
+  {
+    title: "Panico",
+    meta: "2022 | Terror",
+    image: "https://image.tmdb.org/t/p/w500/oadFpqhJ26yxqIlYcGioZ2W3EHN.jpg",
+  },
+  {
+    title: "Supernatural",
+    meta: "2005 | 15 temporadas",
+    image: "https://image.tmdb.org/t/p/w500/KoYWXbnYuS3b0GyQPkbuexlVK9.jpg",
+  },
+  {
+    title: "Euphoria",
+    meta: "2019 | Drama",
+    image: "https://image.tmdb.org/t/p/w500/3Q0hd3heuWwDWpwcDkhQOA6TYWI.jpg",
+  },
+  {
+    title: "Invencivel",
+    meta: "2021 | Animacao",
+    image: "https://image.tmdb.org/t/p/w500/dMOpdkrDC5dQxqNydgKxXjBKyAc.jpg",
+  },
+  {
+    title: "Tres Gracas",
+    meta: "2025 | Drama",
+    image: "https://image.tmdb.org/t/p/w500/8WUVHemHFH2ZIP6NWkwlHWsyrEL.jpg",
+  },
+  {
+    title: "Origem",
+    meta: "2022 | Suspense",
+    image: "https://image.tmdb.org/t/p/w500/c5Sc5mfuAA6e3tNQllC36L7ZQ2A.jpg",
+  },
+];
+
+const recentlyAdded = [
+  { title: "The Nanny", meta: "Serie", image: "https://image.tmdb.org/t/p/w500/qWnJzyZhyy74gjpSjIXWmuk0ifX.jpg" },
+  { title: "Cidades Assombradas", meta: "Documentario", image: "https://image.tmdb.org/t/p/w500/ljsZTbVsrQSqZgWeep2B1QiDKuh.jpg" },
+  { title: "Rastro do Ouro", meta: "Animacao", image: "https://image.tmdb.org/t/p/w500/yOm993lsJyPmBodlYjgpPwBjXP9.jpg" },
+  { title: "Doc", meta: "Drama", image: "https://image.tmdb.org/t/p/w500/sv1xJUazXeYqALzczSZ3O6nkH75.jpg" },
+  { title: "Terra a Deriva", meta: "Ficcao cientifica", image: "https://image.tmdb.org/t/p/w500/u2DXsU95QXxbpT0mFWj1L0zhr3F.jpg" },
+  { title: "Jovens Maes", meta: "Reality", image: "https://image.tmdb.org/t/p/w500/8w7ow9ErjEQYF0Y2yzXt6bR56Xc.jpg" },
+  { title: "No Rastro do Perigo", meta: "Acao", image: "https://image.tmdb.org/t/p/w500/bQS43HSLZzMjZkcHJz4fGc7fNdz.jpg" },
+  { title: "A Fortuna de Escobar", meta: "Acao", image: "https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg" },
+  { title: "Jester", meta: "Terror", image: "https://image.tmdb.org/t/p/w500/lQYx4YspH4xu2Hm3H27xOOgQyZ7.jpg" },
+  { title: "Socorro!", meta: "Terror", image: "https://image.tmdb.org/t/p/w500/4jeFXQYytChdZYE9JYO7Un87IlW.jpg" },
+];
+
+const homeRows = [
+  {
+    title: "Adicionados Recentemente",
+    items: recentlyAdded,
+  },
+  {
+    title: "Em Alta",
+    items: [seriesCatalog[0], extraPosters[9], extraPosters[0], extraPosters[1], extraPosters[6], extraPosters[5], extraPosters[2], extraPosters[3]],
+  },
+  {
+    title: "Filmes",
+    items: [catalog[0], catalog[1], catalog[2], extraPosters[0], extraPosters[1], extraPosters[2], extraPosters[3], extraPosters[4], extraPosters[8], extraPosters[9]],
+  },
+  {
+    title: "Animes",
+    items: [
+      { title: "Naruto", meta: "Anime", image: "https://image.tmdb.org/t/p/w500/x3C9i4xT3XP0M1h7M4B0l5yngD3.jpg" },
+      { title: "Dragon Ball", meta: "Anime", image: "https://image.tmdb.org/t/p/w500/f2zhRLqwRLrKhEMeIM7Z5buJFo3.jpg" },
+      { title: "Blue Lock", meta: "Anime", image: "https://image.tmdb.org/t/p/w500/3Tazk2pJ0q1b0M2hIYkN5g5pZ8K.jpg" },
+      { title: "JoJo's Bizarre Adventure", meta: "Anime", image: "https://image.tmdb.org/t/p/w500/ogAWwbh3frWtiTyyXrZaVFtqCgp.jpg" },
+      { title: "Godzilla Ponto Singular", meta: "Anime", image: "https://image.tmdb.org/t/p/w500/6U0sHfe1J1rH4YcBTdX3dHh0dTX.jpg" },
+      { title: "Dan Da Dan", meta: "Anime", image: "https://image.tmdb.org/t/p/w500/6qfZAOEUFIrbUH3JvePclx1nXzz.jpg" },
+    ],
+  },
+  {
+    title: "Shorts",
+    items: [
+      { title: "Voltar ao Passado", meta: "Romance", image: "https://image.tmdb.org/t/p/w500/8kOWDBK6XlPUzckuHDo3wwVRFwt.jpg" },
+      { title: "Nova Cara", meta: "Drama", image: "https://image.tmdb.org/t/p/w500/aWxwnYoe8p2d2fcxOqtvAtJ72Rw.jpg" },
+      { title: "Vinganca no Palacio", meta: "Drama", image: "https://image.tmdb.org/t/p/w500/uUiIGztTrfDhPdAFJpr6m4UBMAd.jpg" },
+      { title: "Uma Esposa Nunca Perdoa", meta: "Suspense", image: "https://image.tmdb.org/t/p/w500/e1mjopzAS2KNsvpbpahQ1a6SkSn.jpg" },
+      { title: "Seu Coracao Secreto", meta: "Romance", image: "https://image.tmdb.org/t/p/w500/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg" },
+      { title: "Saudades Depois do Adeus", meta: "Drama", image: "https://image.tmdb.org/t/p/w500/5ik4ATKmNtmJU6AYD0bLm56BCVM.jpg" },
+    ],
+  },
+  {
+    title: "Desenhos",
+    items: [
+      { title: "Os Oblongs", meta: "Desenho", image: "https://image.tmdb.org/t/p/w500/1qVjgG5BLv0OP2gAhP8MJDN5VPW.jpg" },
+      { title: "Luluzinha", meta: "Desenho", image: "https://image.tmdb.org/t/p/w500/7QSM3AsgWXctWBm7OFov9dGdZgt.jpg" },
+      { title: "Teletubbies", meta: "Infantil", image: "https://image.tmdb.org/t/p/w500/wBYeA0y4kYW8HKSUDAW8gYQ5Yw.jpg" },
+      { title: "RoboCop: A Serie Animada", meta: "Acao", image: "https://image.tmdb.org/t/p/w500/w46Vw536HwNnEzOa7J24YH9DPRS.jpg" },
+      { title: "Esquadrao de Herois", meta: "Herois", image: "https://image.tmdb.org/t/p/w500/aG2VgPHJ9JDwWJ3O9A3W4iL5KRq.jpg" },
+      { title: "Barbie: It Takes Two", meta: "Infantil", image: "https://image.tmdb.org/t/p/w500/z3y3ChnyYwY1ZSe0o5WsC8jQ3K9.jpg" },
+    ],
+  },
+];
+
+const topMovies = [extraPosters[0], extraPosters[1], extraPosters[2], extraPosters[3], extraPosters[4], extraPosters[8], catalog[0], catalog[1], catalog[2], extraPosters[9]];
+const topSeries = [seriesCatalog[0], extraPosters[9], extraPosters[6], extraPosters[7], extraPosters[5], extraPosters[8], extraPosters[4], recentlyAdded[5], recentlyAdded[6], recentlyAdded[9]];
+
+function searchableItems() {
+  return [
+    ...seriesCatalog.map((item) => ({
+      type: "Serie",
+      title: item.title,
+      meta: item.meta,
+      image: item.poster || item.image,
+      view: "details",
+      item,
+    })),
+    ...catalog.map((item) => ({
+      type: "Filme",
+      title: item.title,
+      meta: item.meta,
+      image: item.image,
+      view: "home",
+      item,
+    })),
+  ];
+}
+
+function searchResultsMarkup(query = "") {
+  const normalizedQuery = query.trim().toLowerCase();
+  const results = searchableItems().filter((item) => {
+    const searchableText = `${item.title} ${item.meta} ${item.type}`.toLowerCase();
+    return !normalizedQuery || searchableText.includes(normalizedQuery);
+  });
+
+  if (!results.length) {
+    return `<div class="search-empty"><strong>Nada encontrado</strong><span>Tente buscar outro filme ou serie.</span></div>`;
+  }
+
+  return results
+    .map(
+      (item, index) => `
+        <button class="search-result" type="button" data-search-result="${index}">
+          <img src="${item.image}" alt="" onerror="this.onerror=null;this.src='./public/assets/the-boys-banner.png';" />
+          <span>
+            <strong>${item.title}</strong>
+            <small>${item.type} · ${item.meta}</small>
+          </span>
+        </button>
+      `,
+    )
+    .join("");
+}
+
+function mediaCard(item) {
+  return `
+    <article class="media-card" role="button" tabindex="0" data-view="details" aria-label="Abrir ${item.title}">
+      <img src="${item.poster || item.image}" alt="" onerror="this.onerror=null;this.src='./public/assets/the-boys-banner.png';" />
+      <strong>${item.title}</strong>
+    </article>
+  `;
+}
+
+function contentRow(row) {
+  return `
+    <section class="content-section shelf-section">
+      <div class="section-title"><h2>${row.title}</h2></div>
+      <div class="media-row">
+        ${row.items.map(mediaCard).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function rankedCard(item, index) {
+  return `
+    <article class="ranked-card" role="button" tabindex="0" data-view="details" aria-label="${index + 1}. ${item.title}">
+      <span class="rank-number">${index + 1}</span>
+      <img src="${item.poster || item.image}" alt="" onerror="this.onerror=null;this.src='./public/assets/the-boys-banner.png';" />
+    </article>
+  `;
+}
+
+function rankedRow(title, items) {
+  return `
+    <section class="content-section ranked-section">
+      <div class="section-title"><h2>${title}</h2></div>
+      <div class="ranked-row">
+        ${items.slice(0, 10).map(rankedCard).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function readStorage(key) {
   try {
     return JSON.parse(localStorage.getItem(key));
@@ -112,7 +360,7 @@ function readStorage(key) {
 
 function getGoogleDriveEmbedUrl(url) {
   const fileId = url.match(/drive\.google\.com\/file\/d\/([^/]+)/)?.[1];
-  return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : "";
+  return fileId ? `https://drive.google.com/file/d/${fileId}/preview?autoplay=1` : "";
 }
 
 function getYoutubeBackgroundUrl(videoId) {
@@ -188,6 +436,11 @@ function render() {
     return;
   }
 
+  if (view === "series") {
+    renderSeries();
+    return;
+  }
+
   if (view === "player") {
     renderPlayer(currentItem || episodesBySeason[1][0]);
     return;
@@ -208,17 +461,86 @@ function header() {
         <img src="./public/assets/logo.png" alt="CINEVS" />
       </a>
       <nav class="nav-pills" aria-label="Navegacao principal">
-        <button class="icon-search" type="button" aria-label="Pesquisar">⌕</button>
+        <div class="search-wrap">
+          <button class="icon-search" type="button" aria-label="Pesquisar" aria-expanded="false" aria-controls="searchPanel" data-search-toggle>⌕</button>
+          <div class="search-panel" id="searchPanel" hidden>
+            <label class="search-field">
+              <span>Pesquisar</span>
+              <input type="search" placeholder="Buscar filme ou serie" autocomplete="off" data-search-input />
+            </label>
+            <div class="search-results" data-search-results>
+              ${searchResultsMarkup()}
+            </div>
+          </div>
+        </div>
         <a class="${view === "home" ? "active" : ""}" href="#" data-view="home">Inicio</a>
-        <a class="${view === "details" ? "active" : ""}" href="#" data-view="details">Series</a>
+        <div class="nav-item">
+          <button class="nav-trigger" type="button">Filmes</button>
+          <div class="nav-dropdown" aria-label="Menu de filmes">
+            <div class="nav-dropdown-main">
+              <button type="button">Filmes por genero</button>
+              <button type="button">Todos os filmes</button>
+              <button type="button">Filmes por ano</button>
+              <button type="button">Filmes por audio</button>
+            </div>
+            <div class="nav-dropdown-list">
+              <button type="button">Acao</button>
+              <button type="button">Aventura</button>
+              <button type="button">Comedia</button>
+              <button type="button">Drama</button>
+              <button type="button">Ficcao cientifica</button>
+              <button type="button">Terror</button>
+            </div>
+          </div>
+        </div>
+        <div class="nav-item">
+          <a class="${view === "series" ? "active" : ""} nav-trigger" href="#" data-view="series">Series</a>
+          <div class="nav-dropdown" aria-label="Menu de series">
+            <div class="nav-dropdown-main">
+              <button type="button">Series por genero</button>
+              <button type="button">Todas as series</button>
+              <button type="button">Series por ano</button>
+              <button type="button">Series por audio</button>
+            </div>
+            <div class="nav-dropdown-list">
+              <button type="button">Acao</button>
+              <button type="button">Aventura</button>
+              <button type="button">Comedia</button>
+              <button type="button">Drama</button>
+              <button type="button">Ficcao cientifica</button>
+              <button type="button">Suspense</button>
+            </div>
+          </div>
+        </div>
         <a href="#" data-view="home">Catalogo</a>
         <a href="#" data-view="home">Minha Lista</a>
+        <a href="#" data-view="home">Canais</a>
       </nav>
       <div class="profile-actions">
-        <button class="notification" aria-label="Notificacoes">
-          <span class="bell-icon">&#128276;</span>
-          <span class="notification-badge">9+</span>
-        </button>
+        <div class="notification-wrap">
+          <button class="notification" type="button" aria-label="Notificacoes" aria-expanded="false" aria-controls="notificationsPanel" data-notifications-toggle>
+            <span class="bell-icon">&#128276;</span>
+            <span class="notification-badge">9+</span>
+          </button>
+          <div class="notifications-panel" id="notificationsPanel" aria-label="Notificacoes recentes" hidden>
+            <div class="notifications-header">
+              <strong>Notificacoes</strong>
+              <span>9 novas</span>
+            </div>
+            <button class="notification-item" type="button">
+              <span class="notification-dot"></span>
+              <span><strong>Novo episodio disponivel</strong><small>The Boys T1-E4 ja esta no catalogo.</small></span>
+            </button>
+            <button class="notification-item" type="button">
+              <span class="notification-dot soft"></span>
+              <span><strong>Continue assistindo</strong><small>Volte para o episodio 1 de The Boys.</small></span>
+            </button>
+            <button class="notification-item" type="button">
+              <span class="notification-dot blue"></span>
+              <span><strong>Catalogo atualizado</strong><small>Novos destaques foram adicionados hoje.</small></span>
+            </button>
+          </div>
+        </div>
         <div class="profile-menu">
           <button class="avatar" aria-label="Perfil">${avatarMarkup}</button>
           <div class="profile-dropdown" role="menu">
@@ -238,6 +560,9 @@ function header() {
 }
 
 function bindHeaderActions() {
+  headerCleanup?.();
+  headerCleanup = null;
+
   document.querySelectorAll("[data-view]").forEach((link) => {
     link.addEventListener("click", (event) => {
       event.preventDefault();
@@ -260,6 +585,104 @@ function bindHeaderActions() {
     pendingPlaybackItem = null;
     setView("home");
   });
+
+  const searchToggle = document.querySelector("[data-search-toggle]");
+  const searchPanel = document.querySelector("#searchPanel");
+  const searchInput = document.querySelector("[data-search-input]");
+  const searchResults = document.querySelector("[data-search-results]");
+  const closeSearch = () => {
+    searchPanel?.setAttribute("hidden", "");
+    searchToggle?.setAttribute("aria-expanded", "false");
+  };
+  const openSearch = () => {
+    searchPanel.hidden = false;
+    searchToggle.setAttribute("aria-expanded", "true");
+    window.setTimeout(() => searchInput?.focus(), 0);
+  };
+  const bindSearchResults = () => {
+    const currentResults = searchableItems().filter((item) => {
+      const query = searchInput?.value.trim().toLowerCase() || "";
+      const searchableText = `${item.title} ${item.meta} ${item.type}`.toLowerCase();
+      return !query || searchableText.includes(query);
+    });
+
+    document.querySelectorAll("[data-search-result]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const result = currentResults[Number(button.dataset.searchResult)];
+        if (!result) {
+          return;
+        }
+        closeSearch();
+        if (result.type === "Serie") {
+          selectedSeason = 1;
+          navigateWithFeedback(button, "details", result.item);
+          return;
+        }
+        navigateWithFeedback(button, "home");
+      });
+    });
+  };
+
+  searchToggle?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const isOpen = searchToggle.getAttribute("aria-expanded") === "true";
+    if (isOpen) {
+      closeSearch();
+      return;
+    }
+    openSearch();
+    bindSearchResults();
+  });
+
+  searchInput?.addEventListener("input", () => {
+    searchResults.innerHTML = searchResultsMarkup(searchInput.value);
+    bindSearchResults();
+  });
+
+  searchPanel?.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  bindSearchResults();
+
+  const notificationsToggle = document.querySelector("[data-notifications-toggle]");
+  const notificationsPanel = document.querySelector("#notificationsPanel");
+  const closeNotifications = () => {
+    notificationsPanel?.setAttribute("hidden", "");
+    notificationsToggle?.setAttribute("aria-expanded", "false");
+  };
+
+  notificationsToggle?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const isOpen = notificationsToggle.getAttribute("aria-expanded") === "true";
+    notificationsToggle.setAttribute("aria-expanded", String(!isOpen));
+    notificationsPanel.hidden = isOpen;
+  });
+
+  notificationsPanel?.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
+  const handleDocumentClick = (event) => {
+    if (!event.target?.closest?.(".search-wrap")) {
+      closeSearch();
+    }
+    if (!event.target?.closest?.(".notification-wrap")) {
+      closeNotifications();
+    }
+  };
+  const handleDocumentKeydown = (event) => {
+    if (event.key === "Escape") {
+      closeSearch();
+      closeNotifications();
+    }
+  };
+
+  document.addEventListener("click", handleDocumentClick);
+  document.addEventListener("keydown", handleDocumentKeydown);
+  headerCleanup = () => {
+    document.removeEventListener("click", handleDocumentClick);
+    document.removeEventListener("keydown", handleDocumentKeydown);
+  };
 }
 
 function renderAuth() {
@@ -362,23 +785,28 @@ function showAuthMessage(message) {
 }
 
 function renderHome() {
-  const backgroundVideoUrl = getYoutubeBackgroundUrl(theBoysDetail.backgroundVideoId);
+  const featured = featuredSlides[featuredIndex];
   root.innerHTML = `
     <main class="app">
       ${header()}
-      <section class="hero" style="--hero-image: url('${theBoysDetail.background}')">
-        <div class="background-video" aria-hidden="true">
-          <iframe src="${backgroundVideoUrl}" title="" allow="autoplay; encrypted-media; picture-in-picture"></iframe>
-        </div>
+      <section class="hero" style="--hero-image: url('${featured.background}')">
         <div class="hero-content">
-          <p class="eyebrow">Serie em destaque</p>
-          <h1>${theBoysDetail.title}</h1>
+          <p class="eyebrow">${featured.type}</p>
+          ${
+            featured.logo
+              ? `<img class="title-logo hero-title-logo" src="${featured.logo}" alt="${featured.title}" />`
+              : `<h1 class="hero-text-title">${featured.title}</h1>`
+          }
           <div class="meta-row">
-            <span class="imdb">IMDb</span><strong>${theBoysDetail.rating}</strong><span class="dot"></span>
-            <strong>${theBoysDetail.year}</strong><span class="dot"></span><span class="genre">Temporada 1</span>
+            <span class="imdb">IMDb</span><strong>${featured.rating}</strong><span class="dot"></span>
+            <strong>${featured.year}</strong><span class="dot"></span>${featured.tags.map((tag) => `<span class="genre">${tag}</span>`).join("")}
           </div>
-          <p class="description">${theBoysDetail.synopsis}</p>
+          <p class="description">${featured.description}</p>
           <button class="watch-button" type="button" data-play-featured>▶ Assistir</button>
+        </div>
+        <button class="hero-next" type="button" aria-label="Proximo destaque" data-next-featured>›</button>
+        <div class="slider-dots" aria-label="Destaques">
+          ${featuredSlides.map((_, index) => `<button class="${index === featuredIndex ? "active" : ""}" type="button" aria-label="Destaque ${index + 1}" data-featured-dot="${index}"></button>`).join("")}
         </div>
       </section>
       <section class="content-section first-section">
@@ -396,28 +824,78 @@ function renderHome() {
           </article>
         </div>
       </section>
-      <section class="content-section">
-        <div class="section-title"><h2>Catalogo em Alta</h2></div>
-        <div class="poster-grid">
-          ${catalog
-            .map(
-              (item) => `
-                <article class="poster-card" role="button" tabindex="0" data-view="details" aria-label="Abrir ${item.title}">
-                  <img src="${item.image}" alt="" />
-                  <div class="poster-info"><h3>${item.title}</h3><p>${item.meta}</p></div>
-                </article>
-              `,
-            )
-            .join("")}
+      ${homeRows.slice(0, 3).map(contentRow).join("")}
+      ${rankedRow("Top 10 Filmes", topMovies)}
+      ${rankedRow("Top 10 Series", topSeries)}
+      ${homeRows.slice(3).map(contentRow).join("")}
+    </main>
+  `;
+  bindHeaderActions();
+  document.querySelector("[data-play-featured]")?.addEventListener("click", (event) => {
+    if (featured.item !== theBoysDetail) {
+      navigateWithFeedback(event.currentTarget, "home");
+      return;
+    }
+    const firstEpisode = episodesBySeason[1][0];
+    selectedSeason = 1;
+    playEpisode(firstEpisode, event.currentTarget);
+  });
+  document.querySelector("[data-next-featured]")?.addEventListener("click", () => {
+    featuredIndex = (featuredIndex + 1) % featuredSlides.length;
+    renderHome();
+  });
+  document.querySelectorAll("[data-featured-dot]").forEach((button) => {
+    button.addEventListener("click", () => {
+      featuredIndex = Number(button.dataset.featuredDot);
+      renderHome();
+    });
+  });
+  animatePageIn();
+}
+
+function renderSeries() {
+  root.innerHTML = `
+    <main class="app">
+      ${header()}
+      <section class="series-page">
+        <div class="series-shell" tabindex="-1">
+          <div class="series-header">
+            <p class="eyebrow">Series</p>
+            <h1>Series</h1>
+            <p>Escolha uma serie para ver os detalhes e assistir.</p>
+          </div>
+          <div class="series-grid">
+            ${seriesCatalog
+              .map(
+                (item) => `
+                  <article class="series-card" role="button" tabindex="0" data-series-title="${item.title}" aria-label="Abrir ${item.title}">
+                    <img src="${item.poster || item.image}" alt="" />
+                    <div class="series-card-shade"></div>
+                    <div class="series-card-info">
+                      <strong>${item.title}</strong>
+                      <span>${item.meta}</span>
+                    </div>
+                  </article>
+                `,
+              )
+              .join("")}
+          </div>
         </div>
       </section>
     </main>
   `;
   bindHeaderActions();
-  document.querySelector("[data-play-featured]")?.addEventListener("click", (event) => {
-    const firstEpisode = episodesBySeason[1][0];
-    selectedSeason = 1;
-    playEpisode(firstEpisode, event.currentTarget);
+  document.querySelector(".series-shell")?.focus({ preventScroll: true });
+  document.querySelectorAll("[data-series-title]").forEach((card) => {
+    const openSeries = () => navigateWithFeedback(card, "details", theBoysDetail);
+    card.addEventListener("click", openSeries);
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      openSeries();
+    });
   });
   animatePageIn();
 }
@@ -432,9 +910,10 @@ function renderDetails() {
         <section class="title-hero-detail" style="--detail-bg: url('${theBoysDetail.background}')">
           <div class="background-video detail-background-video" aria-hidden="true">
             <iframe src="${backgroundVideoUrl}" title="" allow="autoplay; encrypted-media; picture-in-picture"></iframe>
+            <span class="background-video-shield"></span>
           </div>
           <div class="detail-copy">
-            <h1>${theBoysDetail.title}</h1>
+            <img class="title-logo detail-title-logo" src="./public/assets/the-boys-logo.png" alt="${theBoysDetail.title}" />
             <div class="detail-meta">
               <span class="age-badge">${theBoysDetail.age}</span><span class="imdb">IMDb</span>
               <strong>${theBoysDetail.rating}</strong><span class="dot"></span>
