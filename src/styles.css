@@ -1174,6 +1174,33 @@ a {
   line-height: 1.35;
 }
 
+.episodes-empty {
+  min-height: 10rem;
+  padding: 1.35rem;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.55rem;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 0.5rem;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.045);
+  text-align: center;
+}
+
+.episodes-empty strong {
+  color: #ffffff;
+  font-size: 0.95rem;
+}
+
+.episodes-empty p {
+  max-width: 31rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.78rem;
+  font-weight: 720;
+}
+
 .related-section {
   margin-top: 2rem;
 }
@@ -1505,13 +1532,30 @@ a {
   opacity: 0.42;
 }
 
+.player-drive-video {
+  z-index: 1;
+  border: 0;
+  opacity: 1;
+  background: #000000;
+}
+
 .player-vignette {
   position: absolute;
   inset: 0;
   z-index: -2;
+  pointer-events: none;
   background:
     radial-gradient(circle at 50% 50%, transparent 0%, rgba(0, 0, 0, 0.72) 48%, #000 100%),
     linear-gradient(180deg, rgba(0, 0, 0, 0.75), transparent 26%, rgba(0, 0, 0, 0.88) 100%);
+}
+
+.drive-player-page .player-vignette {
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.62), transparent 18%, transparent 78%, rgba(0, 0, 0, 0.46));
+}
+
+.drive-player-page .player-info {
+  display: none;
 }
 
 .player-topbar,

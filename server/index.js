@@ -18,7 +18,7 @@ const allowedOrigins = (process.env.CLIENT_URL || "")
   .map((origin) => origin.trim())
   .filter(Boolean);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const distPath = path.resolve(__dirname, "../dist");
+const sitePath = path.resolve(__dirname, "..");
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
@@ -296,10 +296,12 @@ app.post("/api/auth/google", async (req, res) => {
   }
 });
 
-app.use(express.static(distPath));
+app.use("/public", express.static(path.join(sitePath, "public")));
+app.use("/src", express.static(path.join(sitePath, "src")));
+app.use(express.static(sitePath));
 
 app.use((_req, res) => {
-  res.sendFile(path.join(distPath, "index.html"));
+  res.sendFile(path.join(sitePath, "index.html"));
 });
 
 initDatabase()
