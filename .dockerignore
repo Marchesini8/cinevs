@@ -1,0 +1,17 @@
+node_modules
+dist
+.env
+.env.local
+.env.*.local
+
+public/assets/*.mp4
+public/assets/*.mov
+public/assets/*.mkv
+public/assets/*.avi
+
+.git
+.gitignore
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
