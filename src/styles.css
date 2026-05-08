@@ -316,6 +316,17 @@ a {
   color: rgba(255, 255, 255, 0.34);
 }
 
+.field-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
 .token-button {
   margin-top: 0.08rem;
   display: flex;
@@ -356,13 +367,31 @@ a {
   text-align: center;
 }
 
-.switch-auth {
+.auth-actions {
+  width: 100%;
+  display: grid;
+  gap: 0.55rem;
   margin-top: 1rem;
+}
+
+.switch-auth {
   color: rgba(255, 255, 255, 0.72);
   background: transparent;
   font-size: 0.82rem;
   font-weight: 850;
   transition: color 160ms ease;
+}
+
+.primary-switch {
+  min-height: 2.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.primary-switch:hover {
+  background: rgba(255, 255, 255, 0.11);
 }
 
 .switch-auth:hover {
@@ -2772,6 +2801,22 @@ a {
   place-items: center;
   color: rgba(203, 213, 235, 0.82);
   font-size: 0;
+}
+
+.menu-svg {
+  width: 1.18rem;
+  height: 1.18rem;
+  flex: 0 0 auto;
+  color: rgba(203, 213, 235, 0.86);
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.profile-dropdown .danger .menu-svg {
+  color: #ff9d9d;
 }
 
 .menu-icon::before {

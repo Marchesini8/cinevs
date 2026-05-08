@@ -4,7 +4,9 @@ const authStorageKey = "cinevs:auth";
 const selectedProfileStorageKey = "cinevs:selected-profile";
 const moviePlaceholderImage = "./public/assets/movie-placeholder.svg";
 const googleClientId =
-  "281350929004-7l7b7t7jd77vofgkd1diuogifiue1pi1.apps.googleusercontent.com";
+  window.GOOGLE_CLIENT_ID ||
+  import.meta.env?.VITE_GOOGLE_CLIENT_ID ||
+  "179853125831-5nnp0kn44t6c2cq5k2f6cp2c1frkeaog.apps.googleusercontent.com";
 const sampleVideoUrl =
   "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
 
@@ -30,6 +32,7 @@ let currentItem = null;
 let pendingPlaybackItem = null;
 let headerCleanup = null;
 let featuredIndex = 0;
+let authMode = "login";
 
 const theBoysDetail = {
   title: "The Boys",
@@ -42,7 +45,7 @@ const theBoysDetail = {
   background: "./public/assets/the-boys-butcher-banner.jpg",
   backgroundVideoId: "XzbWryxxn0c",
   synopsis:
-    "Na trama, conhecemos um mundo em que super-herois sao as maiores celebridades do planeta, e rotineiramente abusam dos seus poderes ao inves de os usarem para o bem.",
+    "Na trama, conhecemos um mundo em que super-heróis são as maiores celebridades do planeta, e rotineiramente abusam dos seus poderes em vez de usá-los para o bem.",
 };
 
 const episodesBySeason = {
@@ -56,28 +59,28 @@ const episodesBySeason = {
     },
     {
       title: "2. Cherry",
-      description: "Os Caras pegam um super-heroi, Luz-Estrela se vinga e Capitao Patria fica atento.",
+      description: "Os Caras pegam um super-herói, Luz-Estrela se vinga e Capitão Pátria fica atento.",
       duration: "59min",
       video: driveVideos.ep2,
       image: episodeImages[1],
     },
     {
       title: "3. Na Fissura",
-      description: "E a corrida do seculo. Trem-Bala disputa o titulo enquanto segredos aparecem.",
+      description: "É a corrida do século. Trem-Bala disputa o título enquanto segredos aparecem.",
       duration: "55min",
       video: driveVideos.ep3,
       image: episodeImages[2],
     },
     {
       title: "4. A Femea da Especie",
-      description: "Em um episodio especial, os Caras seguem uma pista perigosa.",
+      description: "Em um episódio especial, os Caras seguem uma pista perigosa.",
       duration: "56min",
       video: driveVideos.ep4,
       image: episodeImages[3],
     },
     {
       title: "5. Bom Para a Alma",
-      description: "Espaco reservado para adicionar o link do episodio.",
+      description: "Espaço reservado para adicionar o link do episódio.",
       duration: "1h 0min",
       video: sampleVideoUrl,
       image: "./public/assets/the-boys-banner.png",
@@ -92,17 +95,17 @@ const episodesBySeason = {
 const catalog = [
   {
     title: "Duna: Parte Dois",
-    meta: "2024 | Ficcao cientifica",
+    meta: "2024 | Ficção científica",
     image: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
   },
   {
     title: "Godzilla Minus One",
-    meta: "2023 | Acao",
+    meta: "2023 | Ação",
     image: "https://image.tmdb.org/t/p/w500/hkxxMIGaiCTmrEArK7J56JTKUlB.jpg",
   },
   {
     title: "Divertida Mente 2",
-    meta: "2024 | Animacao",
+    meta: "2024 | Animação",
     image: "https://image.tmdb.org/t/p/w500/vpnVM9B6NMmQpWeZvzLvDESb2QY.jpg",
   },
 ];
@@ -132,8 +135,8 @@ const featuredSlides = [
     title: "Duna: Parte Dois",
     rating: "4.8",
     year: "2024",
-    tags: ["Ficcao cientifica"],
-    description: "Paul Atreides se une a Chani e aos Fremen em uma jornada de vinganca, destino e sobrevivencia em Arrakis.",
+    tags: ["Ficção científica"],
+    description: "Paul Atreides se une a Chani e aos Fremen em uma jornada de vingança, destino e sobrevivência em Arrakis.",
     background: "https://image.tmdb.org/t/p/w1280/xOMo8BRK7PfcJv9JCnx7s5hj0PX.jpg",
     item: catalog[0],
   },
@@ -142,8 +145,8 @@ const featuredSlides = [
     title: "Godzilla Minus One",
     rating: "4.7",
     year: "2023",
-    tags: ["Acao"],
-    description: "Um Japao devastado encara uma nova ameaca colossal em meio ao trauma e a reconstrucao do pos-guerra.",
+    tags: ["Ação"],
+    description: "Um Japão devastado encara uma nova ameaça colossal em meio ao trauma e a reconstrução do pós-guerra.",
     background: "https://image.tmdb.org/t/p/w1280/fY3lD0jM5AoHJMunjGWqJ0hRteI.jpg",
     item: catalog[1],
   },
@@ -157,7 +160,7 @@ const extraPosters = [
   },
   {
     title: "Super Mario Galaxy: O Filme",
-    meta: "2026 | Animacao",
+    meta: "2026 | Animação",
     image: "https://image.tmdb.org/t/p/w500/qNBAXBIQlnOThrVvA6mA2B5ggV6.jpg",
   },
   {
@@ -167,7 +170,7 @@ const extraPosters = [
   },
   {
     title: "Homem-Aranha: De Volta ao Lar",
-    meta: "2017 | Acao",
+    meta: "2017 | Ação",
     image: "https://image.tmdb.org/t/p/w500/9Fgs1ewIZiBBTto1XDHeBN0D8ug.jpg",
   },
   {
@@ -187,7 +190,7 @@ const extraPosters = [
   },
   {
     title: "Invencivel",
-    meta: "2021 | Animacao",
+    meta: "2021 | Animação",
     image: "https://image.tmdb.org/t/p/w500/dMOpdkrDC5dQxqNydgKxXjBKyAc.jpg",
   },
   {
@@ -204,13 +207,13 @@ const extraPosters = [
 
 const recentlyAdded = [
   { title: "The Nanny", meta: "Serie", image: "https://image.tmdb.org/t/p/w500/qWnJzyZhyy74gjpSjIXWmuk0ifX.jpg" },
-  { title: "Cidades Assombradas", meta: "Documentario", image: "https://image.tmdb.org/t/p/w500/ljsZTbVsrQSqZgWeep2B1QiDKuh.jpg" },
-  { title: "Rastro do Ouro", meta: "Animacao", image: "https://image.tmdb.org/t/p/w500/yOm993lsJyPmBodlYjgpPwBjXP9.jpg" },
+  { title: "Cidades Assombradas", meta: "Documentário", image: "https://image.tmdb.org/t/p/w500/ljsZTbVsrQSqZgWeep2B1QiDKuh.jpg" },
+  { title: "Rastro do Ouro", meta: "Animação", image: "https://image.tmdb.org/t/p/w500/yOm993lsJyPmBodlYjgpPwBjXP9.jpg" },
   { title: "Doc", meta: "Drama", image: "https://image.tmdb.org/t/p/w500/sv1xJUazXeYqALzczSZ3O6nkH75.jpg" },
-  { title: "Terra a Deriva", meta: "Ficcao cientifica", image: "https://image.tmdb.org/t/p/w500/u2DXsU95QXxbpT0mFWj1L0zhr3F.jpg" },
-  { title: "Jovens Maes", meta: "Reality", image: "https://image.tmdb.org/t/p/w500/8w7ow9ErjEQYF0Y2yzXt6bR56Xc.jpg" },
-  { title: "No Rastro do Perigo", meta: "Acao", image: "https://image.tmdb.org/t/p/w500/bQS43HSLZzMjZkcHJz4fGc7fNdz.jpg" },
-  { title: "A Fortuna de Escobar", meta: "Acao", image: "https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg" },
+  { title: "Terra a Deriva", meta: "Ficção científica", image: "https://image.tmdb.org/t/p/w500/u2DXsU95QXxbpT0mFWj1L0zhr3F.jpg" },
+  { title: "Jovens Mães", meta: "Reality", image: "https://image.tmdb.org/t/p/w500/8w7ow9ErjEQYF0Y2yzXt6bR56Xc.jpg" },
+  { title: "No Rastro do Perigo", meta: "Ação", image: "https://image.tmdb.org/t/p/w500/bQS43HSLZzMjZkcHJz4fGc7fNdz.jpg" },
+  { title: "A Fortuna de Escobar", meta: "Ação", image: "https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg" },
   { title: "Jester", meta: "Terror", image: "https://image.tmdb.org/t/p/w500/lQYx4YspH4xu2Hm3H27xOOgQyZ7.jpg" },
   { title: "Socorro!", meta: "Terror", image: "https://image.tmdb.org/t/p/w500/4jeFXQYytChdZYE9JYO7Un87IlW.jpg" },
 ];
@@ -258,9 +261,9 @@ const homeRows = [
     items: [
       { title: "Voltar ao Passado", meta: "Romance", image: "https://image.tmdb.org/t/p/w500/8kOWDBK6XlPUzckuHDo3wwVRFwt.jpg" },
       { title: "Nova Cara", meta: "Drama", image: "https://image.tmdb.org/t/p/w500/aWxwnYoe8p2d2fcxOqtvAtJ72Rw.jpg" },
-      { title: "Vinganca no Palacio", meta: "Drama", image: "https://image.tmdb.org/t/p/w500/uUiIGztTrfDhPdAFJpr6m4UBMAd.jpg" },
+      { title: "Vingança no Palácio", meta: "Drama", image: "https://image.tmdb.org/t/p/w500/uUiIGztTrfDhPdAFJpr6m4UBMAd.jpg" },
       { title: "Uma Esposa Nunca Perdoa", meta: "Suspense", image: "https://image.tmdb.org/t/p/w500/e1mjopzAS2KNsvpbpahQ1a6SkSn.jpg" },
-      { title: "Seu Coracao Secreto", meta: "Romance", image: "https://image.tmdb.org/t/p/w500/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg" },
+      { title: "Seu Coração Secreto", meta: "Romance", image: "https://image.tmdb.org/t/p/w500/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg" },
       { title: "Saudades Depois do Adeus", meta: "Drama", image: "https://image.tmdb.org/t/p/w500/5ik4ATKmNtmJU6AYD0bLm56BCVM.jpg" },
     ],
   },
@@ -270,8 +273,8 @@ const homeRows = [
       { title: "Os Oblongs", meta: "Desenho", image: "https://image.tmdb.org/t/p/w500/1qVjgG5BLv0OP2gAhP8MJDN5VPW.jpg" },
       { title: "Luluzinha", meta: "Desenho", image: "https://image.tmdb.org/t/p/w500/7QSM3AsgWXctWBm7OFov9dGdZgt.jpg" },
       { title: "Teletubbies", meta: "Infantil", image: "https://image.tmdb.org/t/p/w500/wBYeA0y4kYW8HKSUDAW8gYQ5Yw.jpg" },
-      { title: "RoboCop: A Serie Animada", meta: "Acao", image: "https://image.tmdb.org/t/p/w500/w46Vw536HwNnEzOa7J24YH9DPRS.jpg" },
-      { title: "Esquadrao de Herois", meta: "Herois", image: "https://image.tmdb.org/t/p/w500/aG2VgPHJ9JDwWJ3O9A3W4iL5KRq.jpg" },
+      { title: "RoboCop: A Série Animada", meta: "Ação", image: "https://image.tmdb.org/t/p/w500/w46Vw536HwNnEzOa7J24YH9DPRS.jpg" },
+      { title: "Esquadrão de Heróis", meta: "Heróis", image: "https://image.tmdb.org/t/p/w500/aG2VgPHJ9JDwWJ3O9A3W4iL5KRq.jpg" },
       { title: "Barbie: It Takes Two", meta: "Infantil", image: "https://image.tmdb.org/t/p/w500/z3y3ChnyYwY1ZSe0o5WsC8jQ3K9.jpg" },
     ],
   },
@@ -325,7 +328,7 @@ function searchResultsMarkup(query = "") {
   });
 
   if (!results.length) {
-    return `<div class="search-empty"><strong>Nada encontrado</strong><span>Tente buscar outro filme ou serie.</span></div>`;
+    return `<div class="search-empty"><strong>Nada encontrado</strong><span>Tente buscar outro filme ou série.</span></div>`;
   }
 
   return results
@@ -431,6 +434,24 @@ async function apiRequest(path, options = {}) {
   return data;
 }
 
+function icon(name) {
+  const icons = {
+    user: `<svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>`,
+    profiles: `<svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+    settings: `<svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.5 19.3a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.7 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.5 4.7a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.2.37.52.69.9.9.33.18.7.28 1.08.3H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg>`,
+    logout: `<svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>`,
+    mail: `<svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="m22 6-10 7L2 6"/></svg>`,
+    lock: `<svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+    badge: `<svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>`,
+  };
+
+  return icons[name] || "";
+}
+
+function normalizeAuthMode(mode) {
+  authMode = mode === "register" ? "register" : "login";
+}
+
 function setView(nextView, item = null) {
   view = nextView;
   currentItem = item;
@@ -460,7 +481,7 @@ function render() {
   }
 
   if (view === "auth") {
-    renderAuth();
+    renderAuthPage();
     return;
   }
 
@@ -488,94 +509,94 @@ function render() {
 }
 
 function header() {
-  const user = auth?.user || { name: "Usuario" };
+  const user = auth?.user || { name: "Usuário" };
   const userInitial = user.name?.slice(0, 1).toUpperCase() || "U";
   const avatarMarkup = user.avatarUrl
     ? `<img src="${user.avatarUrl}" alt="" />`
     : `<span>${userInitial}</span>`;
   return `
     <header class="topbar">
-      <a class="brand" href="#" data-view="home" aria-label="CINEVS inicio">
+      <a class="brand" href="#" data-view="home" aria-label="CINEVS início">
         <img src="./public/assets/logo.png" alt="CINEVS" />
       </a>
-      <nav class="nav-pills" aria-label="Navegacao principal">
+      <nav class="nav-pills" aria-label="Navegação principal">
         <div class="search-wrap">
           <button class="icon-search" type="button" aria-label="Pesquisar" aria-expanded="false" aria-controls="searchPanel" data-search-toggle>⌕</button>
           <div class="search-panel" id="searchPanel" hidden>
             <label class="search-field">
               <span>Pesquisar</span>
-              <input type="search" placeholder="Buscar filme ou serie" autocomplete="off" data-search-input />
+              <input type="search" placeholder="Buscar filme ou série" autocomplete="off" data-search-input />
             </label>
             <div class="search-results" data-search-results>
               ${searchResultsMarkup()}
             </div>
           </div>
         </div>
-        <a class="${view === "home" ? "active" : ""}" href="#" data-view="home">Inicio</a>
+        <a class="${view === "home" ? "active" : ""}" href="#" data-view="home">Início</a>
         <div class="nav-item">
           <button class="nav-trigger" type="button">Filmes</button>
           <div class="nav-dropdown" aria-label="Menu de filmes">
             <div class="nav-dropdown-main">
-              <button type="button">Filmes por genero</button>
+              <button type="button">Filmes por gênero</button>
               <button type="button">Todos os filmes</button>
               <button type="button">Filmes por ano</button>
-              <button type="button">Filmes por audio</button>
+              <button type="button">Filmes por áudio</button>
             </div>
             <div class="nav-dropdown-list">
-              <button type="button">Acao</button>
+              <button type="button">Ação</button>
               <button type="button">Aventura</button>
-              <button type="button">Comedia</button>
+              <button type="button">Comédia</button>
               <button type="button">Drama</button>
-              <button type="button">Ficcao cientifica</button>
+              <button type="button">Ficção científica</button>
               <button type="button">Terror</button>
             </div>
           </div>
         </div>
         <div class="nav-item">
-          <a class="${view === "series" ? "active" : ""} nav-trigger" href="#" data-view="series">Series</a>
-          <div class="nav-dropdown" aria-label="Menu de series">
+          <a class="${view === "series" ? "active" : ""} nav-trigger" href="#" data-view="series">Séries</a>
+          <div class="nav-dropdown" aria-label="Menu de séries">
             <div class="nav-dropdown-main">
-              <button type="button">Series por genero</button>
-              <button type="button">Todas as series</button>
-              <button type="button">Series por ano</button>
-              <button type="button">Series por audio</button>
+              <button type="button">Séries por gênero</button>
+              <button type="button">Todas as séries</button>
+              <button type="button">Séries por ano</button>
+              <button type="button">Séries por áudio</button>
             </div>
             <div class="nav-dropdown-list">
-              <button type="button">Acao</button>
+              <button type="button">Ação</button>
               <button type="button">Aventura</button>
-              <button type="button">Comedia</button>
+              <button type="button">Comédia</button>
               <button type="button">Drama</button>
-              <button type="button">Ficcao cientifica</button>
+              <button type="button">Ficção científica</button>
               <button type="button">Suspense</button>
             </div>
           </div>
         </div>
-        <a href="#" data-view="home">Catalogo</a>
+        <a href="#" data-view="home">Catálogo</a>
         <a href="#" data-view="home">Minha Lista</a>
         <a href="#" data-view="home">Canais</a>
       </nav>
       <div class="profile-actions">
         <div class="notification-wrap">
-          <button class="notification" type="button" aria-label="Notificacoes" aria-expanded="false" aria-controls="notificationsPanel" data-notifications-toggle>
+          <button class="notification" type="button" aria-label="Notificações" aria-expanded="false" aria-controls="notificationsPanel" data-notifications-toggle>
             <img class="bell-icon" src="./public/assets/notification-bell.png" alt="" />
             <span class="notification-badge">9+</span>
           </button>
-          <div class="notifications-panel" id="notificationsPanel" aria-label="Notificacoes recentes" hidden>
+          <div class="notifications-panel" id="notificationsPanel" aria-label="Notificações recentes" hidden>
             <div class="notifications-header">
-              <strong>Notificacoes</strong>
+              <strong>Notificações</strong>
               <span>9 novas</span>
             </div>
             <button class="notification-item" type="button">
               <span class="notification-dot"></span>
-              <span><strong>Novo episodio disponivel</strong><small>The Boys T1-E4 ja esta no catalogo.</small></span>
+              <span><strong>Novo episódio disponível</strong><small>The Boys T1-E4 já está no catálogo.</small></span>
             </button>
             <button class="notification-item" type="button">
               <span class="notification-dot soft"></span>
-              <span><strong>Continue assistindo</strong><small>Volte para o episodio 1 de The Boys.</small></span>
+              <span><strong>Continue assistindo</strong><small>Volte para o episódio 1 de The Boys.</small></span>
             </button>
             <button class="notification-item" type="button">
               <span class="notification-dot blue"></span>
-              <span><strong>Catalogo atualizado</strong><small>Novos destaques foram adicionados hoje.</small></span>
+              <span><strong>Catálogo atualizado</strong><small>Novos destaques foram adicionados hoje.</small></span>
             </button>
           </div>
         </div>
@@ -584,12 +605,12 @@ function header() {
           <div class="profile-dropdown" role="menu">
             <button class="profile-summary" type="button" role="menuitem">
               <span class="menu-avatar">${avatarMarkup}</span>
-              <span><strong>${user.name || "Usuario"}</strong><small>Alterar perfil</small></span>
+              <span><strong>${user.name || "Usuário"}</strong><small>Alterar perfil</small></span>
             </button>
-            <button type="button" role="menuitem" data-view="account"><span class="menu-icon account-icon"></span>Conta</button>
-            <button type="button" role="menuitem"><span class="menu-icon feed-icon"></span>Feed</button>
-            <button type="button" role="menuitem"><span class="menu-icon store-icon"></span>Loja</button>
-            <button class="danger" type="button" role="menuitem" data-action="logout"><span class="menu-icon logout-icon"></span>Sair da conta</button>
+            <button type="button" role="menuitem" data-view="account">${icon("user")}Conta</button>
+            <button type="button" role="menuitem">${icon("profiles")}Perfis</button>
+            <button type="button" role="menuitem">${icon("settings")}Configurações</button>
+            <button class="danger" type="button" role="menuitem" data-action="logout">${icon("logout")}Sair da conta</button>
           </div>
         </div>
       </div>
@@ -742,7 +763,7 @@ function bindHeaderActions() {
 }
 
 function renderAccount() {
-  const user = auth?.user || { name: "Usuario", email: "usuario@cinevs.com" };
+  const user = auth?.user || { name: "Usuário", email: "usuario@cinevs.com" };
   const userInitial = user.name?.slice(0, 1).toUpperCase() || "U";
   const avatarMarkup = user.avatarUrl
     ? `<img src="${user.avatarUrl}" alt="" />`
@@ -759,18 +780,18 @@ function renderAccount() {
               <div class="account-initial">${avatarMarkup}</div>
               <div>
                 <div class="account-name-row">
-                  <h1>${user.name || "Usuario"}</h1>
+                  <h1>${user.name || "Usuário"}</h1>
                   <span>Conta ativa</span>
                 </div>
                 <p>${user.email || "usuario@cinevs.com"}</p>
-                <small>1 perfil · Ultimo acesso ${lastAccess}</small>
+                <small>1 perfil · Último acesso ${lastAccess}</small>
               </div>
             </div>
             <div class="account-stats">
-              <div><span>Conteudo adulto</span><strong>Bloqueado</strong></div>
-              <div><span>Conteudo extra</span><strong>Inativo</strong></div>
-              <div><span>Plataforma</span><strong>Nao informado</strong></div>
-              <div><span>Ultimo acesso</span><strong>${lastAccess}</strong></div>
+              <div><span>Conteúdo adulto</span><strong>Bloqueado</strong></div>
+              <div><span>Conteúdo extra</span><strong>Inativo</strong></div>
+              <div><span>Plataforma</span><strong>Não informado</strong></div>
+              <div><span>Último acesso</span><strong>${lastAccess}</strong></div>
             </div>
           </section>
 
@@ -783,8 +804,8 @@ function renderAccount() {
               <article class="profile-row-card">
                 <span class="profile-photo">${avatarMarkup}</span>
                 <div>
-                  <h3>${user.name || "Usuario"}</h3>
-                  <p>@${(user.name || "usuario").toLowerCase().replace(/\s+/g, "")} · Padrao</p>
+                  <h3>${user.name || "Usuário"}</h3>
+                  <p>@${(user.name || "usuário").toLowerCase().replace(/\s+/g, "")} · Padrão</p>
                 </div>
                 <span class="use-badge">Em uso</span>
               </article>
@@ -794,7 +815,7 @@ function renderAccount() {
               <h2>Assinatura</h2>
               <div class="subscription-empty">
                 <strong>Nenhuma assinatura ativa.</strong>
-                <p>Ative um plano para liberar mais telas, perfis e beneficios premium.</p>
+                <p>Ative um plano para liberar mais telas, perfis e benefícios premium.</p>
                 <button type="button">Assinar agora</button>
               </div>
             </section>
@@ -808,7 +829,7 @@ function renderAccount() {
             <div class="shared-content">
               <div>
                 <strong>Gere um token para login compartilhado e remova dispositivos conectados sem sair da conta principal.</strong>
-                <p>O gerenciamento completo fica disponivel apenas para o dispositivo principal.</p>
+                <p>O gerenciamento completo fica disponível apenas para o dispositivo principal.</p>
               </div>
               <button class="management-button" type="button">Abrir gerenciamento <span>›</span></button>
             </div>
@@ -828,16 +849,16 @@ function renderAuth() {
         <a class="auth-brand" href="#"><img src="./public/assets/logo.png" alt="CINEVS" /></a>
         <div class="auth-copy">
           <h1>${pendingPlaybackItem ? "Crie sua conta para assistir" : "Bem-vindo de volta"}</h1>
-          <p>${pendingPlaybackItem ? "Entre ou crie uma conta para liberar a reproducao." : "Entre para acessar seu conteudo."}</p>
+          <p>${pendingPlaybackItem ? "Entre ou crie uma conta para liberar a reprodução." : "Entre para acessar seu conteúdo."}</p>
         </div>
         <div class="google-button-wrap" id="googleButton"></div>
-        <div class="auth-divider"><span></span><p>Mais opcoes de login</p><span></span></div>
+        <div class="auth-divider"><span></span><p>Mais opções de login</p><span></span></div>
         <form class="auth-form" id="loginForm">
           <label class="field"><span>@</span><input name="email" type="email" placeholder="Email" autocomplete="email" /></label>
           <label class="field"><span>•</span><input name="password" type="password" placeholder="Senha" autocomplete="current-password" /></label>
           <button class="token-button">Entrar com email</button>
         </form>
-        <button class="switch-auth" type="button" data-action="back-to-catalog">Voltar para o catalogo</button>
+        <button class="switch-auth" type="button" data-action="back-to-catalog">Voltar para o catálogo</button>
         <p class="auth-message" id="authMessage" hidden></p>
       </section>
     </main>
@@ -876,6 +897,108 @@ function setupGoogleLogin() {
   document.head.appendChild(script);
 }
 
+function renderAuthPage() {
+  const isRegister = authMode === "register";
+  const title = isRegister
+    ? "Criar conta"
+    : pendingPlaybackItem
+      ? "Entre para assistir"
+      : "Bem-vindo de volta";
+  const subtitle = isRegister
+    ? "Crie sua conta para salvar seu perfil e continuar assistindo."
+    : pendingPlaybackItem
+      ? "Entre ou crie uma conta para liberar a reprodução."
+      : "Entre para acessar seu conteúdo.";
+
+  root.innerHTML = `
+    <main class="auth-page">
+      <section class="auth-card" aria-label="Acesso CINEVS">
+        <a class="auth-brand" href="#"><img src="./public/assets/logo.png" alt="CINEVS" /></a>
+        <div class="auth-copy">
+          <h1>${title}</h1>
+          <p>${subtitle}</p>
+        </div>
+        <div class="google-button-wrap" id="googleButton"></div>
+        <div class="auth-divider"><span></span><p>${isRegister ? "Ou cadastre com email" : "Mais opções de login"}</p><span></span></div>
+        <form class="auth-form" id="authForm">
+          ${
+            isRegister
+              ? `<label class="field">${icon("badge")}<input name="name" type="text" placeholder="Nome completo" autocomplete="name" required /></label>`
+              : ""
+          }
+          <label class="field">${icon("mail")}<input name="email" type="email" placeholder="Email" autocomplete="email" required /></label>
+          <label class="field">${icon("lock")}<input name="password" type="password" placeholder="Senha" autocomplete="${isRegister ? "new-password" : "current-password"}" required /></label>
+          <button class="token-button">${isRegister ? "Criar conta" : "Entrar com email"}</button>
+        </form>
+        <div class="auth-actions">
+          <button class="switch-auth primary-switch" type="button" data-action="toggle-auth">${isRegister ? "Já tenho uma conta" : "Criar conta"}</button>
+          <button class="switch-auth" type="button" data-action="back-to-catalog">Voltar para o catálogo</button>
+        </div>
+        <p class="auth-message" id="authMessage" hidden></p>
+      </section>
+    </main>
+  `;
+
+  setupGoogleLoginFromConfig();
+  document.querySelector("#authForm").addEventListener("submit", isRegister ? handleRegister : handleLogin);
+  document.querySelector("[data-action='toggle-auth']").addEventListener("click", () => {
+    normalizeAuthMode(isRegister ? "login" : "register");
+    renderAuthPage();
+  });
+  document.querySelector("[data-action='back-to-catalog']").addEventListener("click", () => {
+    pendingPlaybackItem = null;
+    normalizeAuthMode("login");
+    setView("home");
+  });
+}
+
+function setupGoogleLoginFromConfig() {
+  if (!googleClientId) {
+    const googleButton = document.querySelector("#googleButton");
+    if (googleButton) {
+      googleButton.innerHTML = `<button class="google-button disabled" type="button" disabled><span></span><span><strong>Google indisponível</strong><small>Configure GOOGLE_CLIENT_ID</small></span></button>`;
+    }
+    return;
+  }
+
+  const renderButton = () => {
+    if (!window.google?.accounts?.id) {
+      return;
+    }
+
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      callback: handleGoogleCredential,
+    });
+    window.google.accounts.id.renderButton(document.querySelector("#googleButton"), {
+      theme: "filled_blue",
+      size: "large",
+      shape: "pill",
+      text: "continue_with",
+      width: 320,
+    });
+  };
+
+  if (window.google?.accounts?.id) {
+    renderButton();
+    return;
+  }
+
+  const existingScript = document.querySelector("script[data-google-identity]");
+  if (existingScript) {
+    existingScript.addEventListener("load", renderButton, { once: true });
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.src = "https://accounts.google.com/gsi/client";
+  script.async = true;
+  script.defer = true;
+  script.dataset.googleIdentity = "true";
+  script.onload = renderButton;
+  document.head.appendChild(script);
+}
+
 async function handleLogin(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
@@ -892,6 +1015,30 @@ async function handleLogin(event) {
     localStorage.setItem(authStorageKey, JSON.stringify(data));
     const nextItem = pendingPlaybackItem;
     pendingPlaybackItem = null;
+    setView(nextItem ? "player" : "home", nextItem);
+  } catch (error) {
+    showAuthMessage(error.message);
+  }
+}
+
+async function handleRegister(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+
+  try {
+    const data = await apiRequest("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        name: form.get("name"),
+        email: form.get("email"),
+        password: form.get("password"),
+      }),
+    });
+    auth = data;
+    localStorage.setItem(authStorageKey, JSON.stringify(data));
+    const nextItem = pendingPlaybackItem;
+    pendingPlaybackItem = null;
+    normalizeAuthMode("login");
     setView(nextItem ? "player" : "home", nextItem);
   } catch (error) {
     showAuthMessage(error.message);
@@ -940,7 +1087,7 @@ function renderHome() {
           <p class="description">${featured.description}</p>
           <button class="watch-button" type="button" data-play-featured>▶ Assistir</button>
         </div>
-        <button class="hero-next" type="button" aria-label="Proximo destaque" data-next-featured>›</button>
+        <button class="hero-next" type="button" aria-label="Próximo destaque" data-next-featured>›</button>
         <div class="slider-dots" aria-label="Destaques">
           ${featuredSlides.map((_, index) => `<button class="${index === featuredIndex ? "active" : ""}" type="button" aria-label="Destaque ${index + 1}" data-featured-dot="${index}"></button>`).join("")}
         </div>
@@ -952,9 +1099,9 @@ function renderHome() {
             <img src="${theBoysDetail.image}" alt="" />
             <div class="card-shade"></div>
             <div class="continue-info">
-              <span class="last-label">Ultima serie</span>
+              <span class="last-label">Última série</span>
               <h3>The Boys</h3>
-              <p>Temporada 1 · Episodio 1</p>
+              <p>Temporada 1 · Episódio 1</p>
               <div class="progress-track"><span style="width: 42%"></span></div>
             </div>
           </article>
@@ -962,7 +1109,7 @@ function renderHome() {
       </section>
       ${homeRows.slice(0, 3).map(contentRow).join("")}
       ${rankedRow("Top 10 Filmes", topMovies)}
-      ${rankedRow("Top 10 Series", topSeries)}
+      ${rankedRow("Top 10 Séries", topSeries)}
       ${homeRows.slice(3).map(contentRow).join("")}
     </main>
   `;
@@ -1020,9 +1167,9 @@ function renderSeries() {
       <section class="series-page">
         <div class="series-shell" tabindex="-1">
           <div class="series-header">
-            <p class="eyebrow">Series</p>
-            <h1>Series</h1>
-            <p>Escolha uma serie para ver os detalhes e assistir.</p>
+            <p class="eyebrow">Séries</p>
+            <h1>Séries</h1>
+            <p>Escolha uma série para ver os detalhes e assistir.</p>
           </div>
           <div class="series-grid">
             ${seriesCatalog
@@ -1108,7 +1255,7 @@ function renderDetails() {
           ${
             episodes.length
               ? `<div class="episodes-row">${episodes.map(episodeCard).join("")}</div>`
-              : `<div class="episodes-empty"><strong>Temporada ${selectedSeason} pronta para receber episodios</strong><p>Os episodios desta temporada aparecerao aqui assim que forem adicionados.</p></div>`
+              : `<div class="episodes-empty"><strong>Temporada ${selectedSeason} pronta para receber episódios</strong><p>Os episódios desta temporada aparecerão aqui assim que forem adicionados.</p></div>`
           }
         </section>
       </section>
@@ -1168,26 +1315,26 @@ function movieRating(item) {
 
 function movieDescription(item) {
   const descriptions = {
-    "Duna: Parte Dois": "Paul Atreides se une a Chani e aos Fremen em uma jornada de vinganca, destino e sobrevivencia em Arrakis.",
-    "Godzilla Minus One": "Um Japao devastado encara uma nova ameaca colossal em meio ao trauma e a reconstrucao do pos-guerra.",
-    "Divertida Mente 2": "Riley entra na adolescencia e novas emocoes chegam para transformar tudo dentro da sua mente.",
-    Michael: "A historia da vida de Michael Jackson alem da musica, tracando sua jornada desde a descoberta de seu talento extraordinario.",
-    "Super Mario Galaxy: O Filme": "Depois de salvar o Reino dos Cogumelos, Mario e seus amigos encaram uma missao intergalactica contra um novo vilao ameacador.",
+    "Duna: Parte Dois": "Paul Atreides se une a Chani e aos Fremen em uma jornada de vingança, destino e sobrevivência em Arrakis.",
+    "Godzilla Minus One": "Um Japão devastado encara uma nova ameaça colossal em meio ao trauma e a reconstrução do pós-guerra.",
+    "Divertida Mente 2": "Riley entra na adolescência e novas emoções chegam para transformar tudo dentro da sua mente.",
+    Michael: "A história da vida de Michael Jackson além da música, traçando sua jornada desde a descoberta de seu talento extraordinário.",
+    "Super Mario Galaxy: O Filme": "Depois de salvar o Reino dos Cogumelos, Mario e seus amigos encaram uma missão intergaláctica contra um novo vilão ameaçador.",
     Origem: "Moradores presos em uma cidade misteriosa procuram respostas enquanto tentam sobreviver aos perigos que surgem ao anoitecer.",
   };
   if (item.source === "Google Drive") {
-    return "Filme hospedado no Google Drive e adicionado ao catalogo CineVS. Poster e detalhes completos podem ser atualizados depois.";
+    return "Filme hospedado no Google Drive e adicionado ao catálogo CineVS. Poster e detalhes completos podem ser atualizados depois.";
   }
-  return item.description || descriptions[item.title] || "Uma selecao especial do catalogo CineVS para assistir agora, com aventura, emocao e muito entretenimento.";
+  return item.description || descriptions[item.title] || "Uma seleção especial do catálogo CineVS para assistir agora, com aventura, emoção e muito entretenimento.";
 }
 
 function movieGenres(item) {
   const { genre } = movieMetaParts(item);
   const extras = {
-    "Super Mario Galaxy: O Filme": ["Aventura", "Comedia", "Animacao", "Fantasia", "Familia"],
-    "Duna: Parte Dois": ["Ficcao cientifica", "Aventura", "Drama"],
-    "Godzilla Minus One": ["Acao", "Drama", "Ficcao cientifica"],
-    Michael: ["Drama", "Musica"],
+    "Super Mario Galaxy: O Filme": ["Aventura", "Comédia", "Animação", "Fantasia", "Família"],
+    "Duna: Parte Dois": ["Ficção científica", "Aventura", "Drama"],
+    "Godzilla Minus One": ["Ação", "Drama", "Ficção científica"],
+    Michael: ["Drama", "Música"],
   };
   return extras[item.title] || [genre, "Aventura", "Drama"].filter(Boolean).slice(0, 4);
 }
