@@ -449,6 +449,30 @@ a {
   }
 }
 
+@keyframes panel-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-0.7rem) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes panel-pop-right {
+  from {
+    opacity: 0;
+    transform: translateY(-0.7rem) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .hero {
   position: relative;
   min-height: 78vh;
@@ -803,11 +827,27 @@ a {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
+  overflow: hidden;
   border-radius: 50%;
   color: #ffffff;
   background: #ff7a00;
   font-size: 3.2rem;
   font-weight: 500;
+}
+
+.account-initial img,
+.account-initial span {
+  width: 100%;
+  height: 100%;
+}
+
+.account-initial img {
+  object-fit: cover;
+}
+
+.account-initial span {
+  display: grid;
+  place-items: center;
 }
 
 .account-name-row {
@@ -1361,6 +1401,146 @@ a {
 .related-card h3 {
   margin-top: 0.5rem;
   font-size: 0.78rem;
+}
+
+.movie-details-page {
+  min-height: 100vh;
+  background: #000000;
+}
+
+.movie-hero-detail {
+  position: relative;
+  min-height: 36rem;
+  padding: 6.6rem 4rem 5.2rem;
+  display: flex;
+  align-items: flex-end;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.movie-hero-detail::before {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  content: "";
+  background-image: var(--movie-bg);
+  background-position: center 22%;
+  background-size: cover;
+  transform: scale(1.02);
+}
+
+.movie-hero-detail::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.96) 0%, rgba(0, 0, 0, 0.7) 26%, rgba(0, 0, 0, 0.12) 62%, rgba(0, 0, 0, 0.58) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.2) 48%, #000000 100%);
+}
+
+.movie-detail-copy {
+  width: min(42rem, 100%);
+}
+
+.movie-detail-copy h1 {
+  max-width: 24rem;
+  margin-bottom: 1.25rem;
+  color: #ffffff;
+  font-size: clamp(2.35rem, 5vw, 4.2rem);
+  line-height: 0.94;
+}
+
+.movie-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 1.35rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.94rem;
+}
+
+.movie-age-badge {
+  min-width: 1.9rem;
+  min-height: 1.9rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.4rem;
+  color: #ffffff;
+  background: #1aae57;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.movie-detail-copy > p {
+  max-width: 43rem;
+  margin-bottom: 1.15rem;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1.03rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.movie-detail-actions {
+  margin-top: 1.35rem;
+}
+
+.movie-watch-button {
+  min-width: 11rem;
+}
+
+.movie-related-section {
+  position: relative;
+  z-index: 2;
+  margin-top: -1.25rem;
+  padding: 0 3rem 3.5rem;
+}
+
+.movie-related-section h2 {
+  margin-bottom: 0.9rem;
+  font-size: 1.35rem;
+}
+
+.movie-related-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(12.6rem, 16.2rem);
+  gap: 0.95rem;
+  overflow-x: auto;
+  padding-bottom: 0.65rem;
+  scrollbar-width: none;
+}
+
+.movie-related-row::-webkit-scrollbar {
+  display: none;
+}
+
+.movie-related-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.38rem;
+  cursor: pointer;
+}
+
+.movie-related-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+  object-fit: cover;
+  border-radius: 0.38rem;
+  background: #151515;
+}
+
+.movie-related-card strong {
+  display: block;
+  margin-top: 0.5rem;
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .profiles-page,
@@ -2172,6 +2352,8 @@ a {
   box-shadow:
     0 1.35rem 3.2rem rgba(0, 0, 0, 0.62),
     0 0 0 1px rgba(255, 255, 255, 0.02);
+  animation: panel-pop 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: top left;
 }
 
 .search-panel[hidden] {
@@ -2324,37 +2506,11 @@ a {
 }
 
 .bell-icon {
-  position: relative;
-  width: 1rem;
-  height: 1rem;
+  width: 1.08rem;
+  height: 1.08rem;
   display: block;
-  color: currentColor;
-  font-size: 0;
-  line-height: 1;
-}
-
-.bell-icon::before {
-  position: absolute;
-  left: 0.2rem;
-  top: 0.14rem;
-  width: 0.54rem;
-  height: 0.62rem;
-  content: "";
-  border: 2px solid currentColor;
-  border-bottom: 0;
-  border-radius: 0.45rem 0.45rem 0.18rem 0.18rem;
-}
-
-.bell-icon::after {
-  position: absolute;
-  left: 0.1rem;
-  bottom: 0.08rem;
-  width: 0.8rem;
-  height: 0.22rem;
-  content: "";
-  border-bottom: 2px solid currentColor;
-  border-radius: 999px;
-  box-shadow: 0.34rem 0.18rem 0 -0.28rem currentColor;
+  object-fit: contain;
+  filter: invert(1);
 }
 
 .notification-badge {
@@ -2412,7 +2568,8 @@ a {
   box-shadow:
     0 1.35rem 3.2rem rgba(0, 0, 0, 0.62),
     0 0 0 1px rgba(255, 255, 255, 0.02);
-  transform: translateY(0);
+  animation: panel-pop-right 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: top right;
 }
 
 .notifications-panel[hidden] {
@@ -2532,18 +2689,19 @@ a {
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
   opacity: 0;
   pointer-events: none;
-  transform: translateY(-0.45rem) scale(0.98);
+  transform: translateY(-0.5rem) scale(0.94);
   transform-origin: top right;
   transition:
     opacity 170ms ease,
-    transform 170ms ease;
+    transform 190ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .profile-menu:hover .profile-dropdown,
-.profile-menu:focus-within .profile-dropdown {
+.profile-menu:focus-within .profile-dropdown,
+.profile-menu.is-open .profile-dropdown {
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
 }
 
 .profile-dropdown::before {
@@ -2624,6 +2782,75 @@ a {
   border-radius: 50%;
 }
 
+.account-icon::before {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  box-shadow: 0 0.56rem 0 -0.08rem currentColor;
+}
+
+.account-icon::after {
+  content: "";
+  width: 0.96rem;
+  height: 0.52rem;
+  border: 2px solid currentColor;
+  border-top: 0;
+  border-radius: 0 0 0.55rem 0.55rem;
+  transform: translateY(-0.04rem);
+}
+
+.feed-icon::before {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-width: 2px 2px 0 0;
+  border-radius: 0 999px 0 0;
+  transform: rotate(0deg);
+  box-shadow: 0.26rem 0.26rem 0 -0.18rem currentColor;
+}
+
+.feed-icon::after {
+  content: "";
+  width: 0.2rem;
+  height: 0.2rem;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translate(-0.34rem, 0.34rem);
+}
+
+.store-icon::before {
+  width: 0.95rem;
+  height: 0.82rem;
+  border-radius: 0.16rem;
+  box-shadow: inset 0 0.28rem 0 -0.18rem currentColor;
+}
+
+.store-icon::after {
+  content: "";
+  width: 0.45rem;
+  height: 0.22rem;
+  border: 2px solid currentColor;
+  border-bottom: 0;
+  border-radius: 0.35rem 0.35rem 0 0;
+  transform: translateY(-0.74rem);
+}
+
+.logout-icon::before {
+  width: 0.9rem;
+  height: 0.72rem;
+  border-width: 2px 0 2px 2px;
+  border-radius: 0.12rem 0 0 0.12rem;
+}
+
+.logout-icon::after {
+  content: "";
+  width: 0.72rem;
+  height: 0.72rem;
+  border-width: 2px 2px 0 0;
+  border-style: solid;
+  border-color: currentColor;
+  transform: translateX(-0.18rem) rotate(45deg);
+}
+
 .profile-dropdown button:nth-of-type(3) .menu-icon::before {
   width: 1rem;
   height: 1rem;
@@ -2683,6 +2910,34 @@ a {
   border-width: 0 0 2px 2px;
   border-radius: 0;
   transform: rotate(-45deg);
+}
+
+.profile-dropdown .feed-icon::before {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-width: 2px 2px 0 0;
+  border-radius: 0 999px 0 0;
+  background: transparent;
+  box-shadow: 0.26rem 0.26rem 0 -0.18rem currentColor;
+  transform: rotate(0deg);
+}
+
+.profile-dropdown .store-icon::before {
+  width: 0.95rem;
+  height: 0.82rem;
+  border: 2px solid currentColor;
+  border-radius: 0.16rem;
+  background: transparent;
+  box-shadow: inset 0 0.28rem 0 -0.18rem currentColor;
+  transform: none;
+}
+
+.profile-dropdown .logout-icon::before {
+  width: 0.9rem;
+  height: 0.72rem;
+  border-width: 2px 0 2px 2px;
+  border-radius: 0.12rem 0 0 0.12rem;
+  transform: none;
 }
 
 .hero-content {
@@ -3148,12 +3403,14 @@ h1 {
 }
 
 .view-enter .hero-content,
-.view-enter .detail-copy {
+.view-enter .detail-copy,
+.view-enter .movie-detail-copy {
   animation: content-rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .view-enter .content-section,
-.view-enter .episodes-section {
+.view-enter .episodes-section,
+.view-enter .movie-related-section {
   animation: content-rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both 90ms;
 }
 
@@ -3173,6 +3430,7 @@ h1 {
 .episode-card button,
 .continue-card,
 .poster-card,
+.movie-related-card,
 .player-round-button {
   transition:
     transform 180ms ease,
@@ -3199,7 +3457,8 @@ h1 {
 
 .continue-card:hover,
 .poster-card:hover,
-.episode-card button:hover {
+.episode-card button:hover,
+.movie-related-card:hover {
   box-shadow:
     0 1.25rem 2.6rem rgba(0, 0, 0, 0.42),
     0 0 0 0.12rem rgba(255, 255, 255, 0.16);
@@ -3212,6 +3471,7 @@ h1 {
 .watch-button.is-selecting,
 .primary-detail-button.is-selecting,
 .season-pills button.is-selecting,
+.movie-related-card.is-selecting,
 .player-round-button.is-selecting {
   animation: select-pulse 220ms ease both;
   pointer-events: none;
@@ -3219,7 +3479,8 @@ h1 {
 
 .episode-card button::after,
 .continue-card::after,
-.poster-card::after {
+.poster-card::after,
+.movie-related-card::after {
   position: absolute;
   inset: 0;
   content: "";
@@ -3234,7 +3495,8 @@ h1 {
 
 .episode-card button.is-selecting::after,
 .continue-card.is-selecting::after,
-.poster-card.is-selecting::after {
+.poster-card.is-selecting::after,
+.movie-related-card.is-selecting::after {
   opacity: 1;
   transform: scale(1.25);
 }
@@ -3361,6 +3623,25 @@ h1 {
 
   .episodes-row {
     grid-auto-columns: minmax(14rem, 74vw);
+  }
+
+  .movie-hero-detail {
+    min-height: 36rem;
+    padding: 6.7rem 1.1rem 4.2rem;
+  }
+
+  .movie-detail-copy h1 {
+    max-width: 19rem;
+    font-size: 3.5rem;
+  }
+
+  .movie-related-section {
+    margin-top: -1.9rem;
+    padding-inline: 1.1rem;
+  }
+
+  .movie-related-row {
+    grid-auto-columns: minmax(14.5rem, 72vw);
   }
 
   .player-topbar {
@@ -3571,6 +3852,27 @@ h1 {
 
   .secondary-detail-button {
     flex: 1;
+  }
+
+  .movie-hero-detail {
+    min-height: 38rem;
+  }
+
+  .movie-detail-copy h1 {
+    max-width: 16rem;
+    font-size: 2.85rem;
+  }
+
+  .movie-detail-copy > p {
+    font-size: 0.92rem;
+  }
+
+  .movie-detail-actions {
+    align-items: stretch;
+  }
+
+  .movie-detail-actions .square-action {
+    flex: 1 0 2.85rem;
   }
 
   .player-round-button {

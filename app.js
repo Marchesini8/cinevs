@@ -1,7 +1,10 @@
+import { driveMoviesPart1 } from "./public/data/drive-movies-part1.js";
+
 const authStorageKey = "cinevs:auth";
 const selectedProfileStorageKey = "cinevs:selected-profile";
+const moviePlaceholderImage = "./public/assets/movie-placeholder.svg";
 const googleClientId =
-  "179853125831-5nnp0kn44t6c2cq5k2f6cp2c1frkeaog.apps.googleusercontent.com";
+  "281350929004-7l7b7t7jd77vofgkd1diuogifiue1pi1.apps.googleusercontent.com";
 const sampleVideoUrl =
   "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
 
@@ -212,6 +215,16 @@ const recentlyAdded = [
   { title: "Socorro!", meta: "Terror", image: "https://image.tmdb.org/t/p/w500/4jeFXQYytChdZYE9JYO7Un87IlW.jpg" },
 ];
 
+const driveCatalog = driveMoviesPart1.map((movie) => ({
+  ...movie,
+  title: movie.title,
+  meta: "Drive | Filme",
+  image: movie.image || moviePlaceholderImage,
+  poster: movie.image || moviePlaceholderImage,
+  backdrop: movie.backdrop || movie.image || moviePlaceholderImage,
+  source: "Google Drive",
+}));
+
 const homeRows = [
   {
     title: "Adicionados Recentemente",
@@ -224,6 +237,10 @@ const homeRows = [
   {
     title: "Filmes",
     items: [catalog[0], catalog[1], catalog[2], extraPosters[0], extraPosters[1], extraPosters[2], extraPosters[3], extraPosters[4], extraPosters[8], extraPosters[9]],
+  },
+  {
+    title: "Filmes do Google Drive",
+    items: driveCatalog,
   },
   {
     title: "Animes",
@@ -263,6 +280,22 @@ const homeRows = [
 const topMovies = [extraPosters[0], extraPosters[1], extraPosters[2], extraPosters[3], extraPosters[4], extraPosters[8], catalog[0], catalog[1], catalog[2], extraPosters[9]];
 const topSeries = [seriesCatalog[0], extraPosters[9], extraPosters[6], extraPosters[7], extraPosters[5], extraPosters[8], extraPosters[4], recentlyAdded[5], recentlyAdded[6], recentlyAdded[9]];
 
+function movieCatalogItems() {
+  return [...catalog, ...extraPosters, ...recentlyAdded, ...driveCatalog];
+}
+
+function allDisplayItems() {
+  return [...seriesCatalog, ...movieCatalogItems(), ...homeRows.flatMap((row) => row.items)];
+}
+
+function findDisplayItem(title) {
+  return allDisplayItems().find((item) => item.title === title) || null;
+}
+
+function isSeriesItem(item) {
+  return item?.title === theBoysDetail.title || Boolean(item?.seasons);
+}
+
 function searchableItems() {
   return [
     ...seriesCatalog.map((item) => ({
@@ -273,12 +306,12 @@ function searchableItems() {
       view: "details",
       item,
     })),
-    ...catalog.map((item) => ({
+    ...movieCatalogItems().map((item) => ({
       type: "Filme",
       title: item.title,
       meta: item.meta,
-      image: item.image,
-      view: "home",
+      image: item.image || moviePlaceholderImage,
+      view: "details",
       item,
     })),
   ];
@@ -299,7 +332,7 @@ function searchResultsMarkup(query = "") {
     .map(
       (item, index) => `
         <button class="search-result" type="button" data-search-result="${index}">
-          <img src="${item.image}" alt="" onerror="this.onerror=null;this.src='./public/assets/the-boys-banner.png';" />
+          <img src="${item.image}" alt="" onerror="this.onerror=null;this.src='${moviePlaceholderImage}';" />
           <span>
             <strong>${item.title}</strong>
             <small>${item.type} · ${item.meta}</small>
@@ -312,8 +345,8 @@ function searchResultsMarkup(query = "") {
 
 function mediaCard(item) {
   return `
-    <article class="media-card" role="button" tabindex="0" data-view="details" aria-label="Abrir ${item.title}">
-      <img src="${item.poster || item.image}" alt="" onerror="this.onerror=null;this.src='./public/assets/the-boys-banner.png';" />
+    <article class="media-card" role="button" tabindex="0" data-media-title="${item.title}" aria-label="Abrir ${item.title}">
+      <img src="${item.poster || item.image || moviePlaceholderImage}" alt="" onerror="this.onerror=null;this.src='${moviePlaceholderImage}';" />
       <strong>${item.title}</strong>
     </article>
   `;
@@ -332,9 +365,9 @@ function contentRow(row) {
 
 function rankedCard(item, index) {
   return `
-    <article class="ranked-card" role="button" tabindex="0" data-view="details" aria-label="${index + 1}. ${item.title}">
+    <article class="ranked-card" role="button" tabindex="0" data-media-title="${item.title}" aria-label="${index + 1}. ${item.title}">
       <span class="rank-number">${index + 1}</span>
-      <img src="${item.poster || item.image}" alt="" onerror="this.onerror=null;this.src='./public/assets/the-boys-banner.png';" />
+      <img src="${item.poster || item.image || moviePlaceholderImage}" alt="" onerror="this.onerror=null;this.src='${moviePlaceholderImage}';" />
     </article>
   `;
 }
@@ -441,6 +474,11 @@ function render() {
     return;
   }
 
+  if (view === "account") {
+    renderAccount();
+    return;
+  }
+
   if (view === "player") {
     renderPlayer(currentItem || episodesBySeason[1][0]);
     return;
@@ -519,7 +557,7 @@ function header() {
       <div class="profile-actions">
         <div class="notification-wrap">
           <button class="notification" type="button" aria-label="Notificacoes" aria-expanded="false" aria-controls="notificationsPanel" data-notifications-toggle>
-            <span class="bell-icon">&#128276;</span>
+            <img class="bell-icon" src="./public/assets/notification-bell.png" alt="" />
             <span class="notification-badge">9+</span>
           </button>
           <div class="notifications-panel" id="notificationsPanel" aria-label="Notificacoes recentes" hidden>
@@ -548,10 +586,10 @@ function header() {
               <span class="menu-avatar">${avatarMarkup}</span>
               <span><strong>${user.name || "Usuario"}</strong><small>Alterar perfil</small></span>
             </button>
-            <button type="button" role="menuitem"><span class="menu-icon">◎</span>Conta</button>
-            <button type="button" role="menuitem"><span class="menu-icon">≋</span>Feed</button>
-            <button type="button" role="menuitem"><span class="menu-icon">▣</span>Loja</button>
-            <button class="danger" type="button" role="menuitem" data-action="logout"><span class="menu-icon">&#8618;</span>Sair da conta</button>
+            <button type="button" role="menuitem" data-view="account"><span class="menu-icon account-icon"></span>Conta</button>
+            <button type="button" role="menuitem"><span class="menu-icon feed-icon"></span>Feed</button>
+            <button type="button" role="menuitem"><span class="menu-icon store-icon"></span>Loja</button>
+            <button class="danger" type="button" role="menuitem" data-action="logout"><span class="menu-icon logout-icon"></span>Sair da conta</button>
           </div>
         </div>
       </div>
@@ -618,7 +656,7 @@ function bindHeaderActions() {
           navigateWithFeedback(button, "details", result.item);
           return;
         }
-        navigateWithFeedback(button, "home");
+        navigateWithFeedback(button, "details", result.item);
       });
     });
   };
@@ -662,6 +700,20 @@ function bindHeaderActions() {
     event.stopPropagation();
   });
 
+  const profileMenu = document.querySelector(".profile-menu");
+  const profileButton = profileMenu?.querySelector(".avatar");
+  const closeProfileMenu = () => {
+    profileMenu?.classList.remove("is-open");
+    profileButton?.setAttribute("aria-expanded", "false");
+  };
+
+  profileButton?.setAttribute("aria-expanded", "false");
+  profileButton?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const isOpen = profileMenu.classList.toggle("is-open");
+    profileButton.setAttribute("aria-expanded", String(isOpen));
+  });
+
   const handleDocumentClick = (event) => {
     if (!event.target?.closest?.(".search-wrap")) {
       closeSearch();
@@ -669,11 +721,15 @@ function bindHeaderActions() {
     if (!event.target?.closest?.(".notification-wrap")) {
       closeNotifications();
     }
+    if (!event.target?.closest?.(".profile-menu")) {
+      closeProfileMenu();
+    }
   };
   const handleDocumentKeydown = (event) => {
     if (event.key === "Escape") {
       closeSearch();
       closeNotifications();
+      closeProfileMenu();
     }
   };
 
@@ -683,6 +739,86 @@ function bindHeaderActions() {
     document.removeEventListener("click", handleDocumentClick);
     document.removeEventListener("keydown", handleDocumentKeydown);
   };
+}
+
+function renderAccount() {
+  const user = auth?.user || { name: "Usuario", email: "usuario@cinevs.com" };
+  const userInitial = user.name?.slice(0, 1).toUpperCase() || "U";
+  const avatarMarkup = user.avatarUrl
+    ? `<img src="${user.avatarUrl}" alt="" />`
+    : `<span>${userInitial}</span>`;
+  const lastAccess = new Date().toLocaleDateString("pt-BR");
+
+  root.innerHTML = `
+    <main class="app">
+      ${header()}
+      <section class="account-page">
+        <div class="account-shell">
+          <section class="account-hero-card">
+            <div class="account-main">
+              <div class="account-initial">${avatarMarkup}</div>
+              <div>
+                <div class="account-name-row">
+                  <h1>${user.name || "Usuario"}</h1>
+                  <span>Conta ativa</span>
+                </div>
+                <p>${user.email || "usuario@cinevs.com"}</p>
+                <small>1 perfil · Ultimo acesso ${lastAccess}</small>
+              </div>
+            </div>
+            <div class="account-stats">
+              <div><span>Conteudo adulto</span><strong>Bloqueado</strong></div>
+              <div><span>Conteudo extra</span><strong>Inativo</strong></div>
+              <div><span>Plataforma</span><strong>Nao informado</strong></div>
+              <div><span>Ultimo acesso</span><strong>${lastAccess}</strong></div>
+            </div>
+          </section>
+
+          <div class="account-grid">
+            <section class="account-panel profiles-panel">
+              <div class="panel-header">
+                <h2>Perfis</h2>
+                <button type="button">Gerenciar perfis <span>›</span></button>
+              </div>
+              <article class="profile-row-card">
+                <span class="profile-photo">${avatarMarkup}</span>
+                <div>
+                  <h3>${user.name || "Usuario"}</h3>
+                  <p>@${(user.name || "usuario").toLowerCase().replace(/\s+/g, "")} · Padrao</p>
+                </div>
+                <span class="use-badge">Em uso</span>
+              </article>
+            </section>
+
+            <section class="account-panel subscription-panel">
+              <h2>Assinatura</h2>
+              <div class="subscription-empty">
+                <strong>Nenhuma assinatura ativa.</strong>
+                <p>Ative um plano para liberar mais telas, perfis e beneficios premium.</p>
+                <button type="button">Assinar agora</button>
+              </div>
+            </section>
+          </div>
+
+          <section class="account-panel shared-panel">
+            <div class="panel-header">
+              <h2>Acesso Compartilhado</h2>
+              <button type="button">Gerenciar token <span>›</span></button>
+            </div>
+            <div class="shared-content">
+              <div>
+                <strong>Gere um token para login compartilhado e remova dispositivos conectados sem sair da conta principal.</strong>
+                <p>O gerenciamento completo fica disponivel apenas para o dispositivo principal.</p>
+              </div>
+              <button class="management-button" type="button">Abrir gerenciamento <span>›</span></button>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  `;
+  bindHeaderActions();
+  animatePageIn();
 }
 
 function renderAuth() {
@@ -833,7 +969,7 @@ function renderHome() {
   bindHeaderActions();
   document.querySelector("[data-play-featured]")?.addEventListener("click", (event) => {
     if (featured.item !== theBoysDetail) {
-      navigateWithFeedback(event.currentTarget, "home");
+      navigateWithFeedback(event.currentTarget, "details", featured.item);
       return;
     }
     const firstEpisode = episodesBySeason[1][0];
@@ -850,7 +986,31 @@ function renderHome() {
       renderHome();
     });
   });
+  bindMediaCards();
   animatePageIn();
+}
+
+function bindMediaCards() {
+  document.querySelectorAll("[data-media-title]").forEach((card) => {
+    const openItem = () => {
+      const item = findDisplayItem(card.dataset.mediaTitle);
+      if (!item) {
+        return;
+      }
+      if (isSeriesItem(item)) {
+        selectedSeason = 1;
+      }
+      navigateWithFeedback(card, "details", item);
+    };
+    card.addEventListener("click", openItem);
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      openItem();
+    });
+  });
 }
 
 function renderSeries() {
@@ -901,6 +1061,11 @@ function renderSeries() {
 }
 
 function renderDetails() {
+  if (currentItem && !isSeriesItem(currentItem)) {
+    renderMovieDetails(currentItem);
+    return;
+  }
+
   const episodes = episodesBySeason[selectedSeason] || [];
   const backgroundVideoUrl = getYoutubeBackgroundUrl(theBoysDetail.backgroundVideoId);
   root.innerHTML = `
@@ -972,6 +1137,137 @@ function renderDetails() {
   animatePageIn();
 }
 
+function movieMetaParts(item) {
+  const [year = "2026", genre = "Filme"] = (item.meta || "").split("|").map((part) => part.trim());
+  return { year, genre };
+}
+
+function movieBackdrop(item) {
+  const backdrops = {
+    "Duna: Parte Dois": "https://image.tmdb.org/t/p/w1280/xOMo8BRK7PfcJv9JCnx7s5hj0PX.jpg",
+    "Godzilla Minus One": "https://image.tmdb.org/t/p/w1280/fY3lD0jM5AoHJMunjGWqJ0hRteI.jpg",
+    Michael: "https://image.tmdb.org/t/p/w1280/4a3oHj0wHxV5Uw95Ww7NnT4v8DU.jpg",
+  };
+  return item.backdrop || backdrops[item.title] || item.image || moviePlaceholderImage;
+}
+
+function movieRating(item) {
+  const ratings = {
+    "Duna: Parte Dois": "4.8",
+    "Godzilla Minus One": "4.7",
+    "Divertida Mente 2": "4.6",
+    Michael: "4.9",
+    "Super Mario Galaxy: O Filme": "4.5",
+    "Avatar: Fogo e Cinzas": "4.6",
+    "Homem-Aranha: De Volta ao Lar": "4.4",
+    Panico: "4.2",
+    Origem: "4.7",
+  };
+  return item.rating || ratings[item.title] || "4.5";
+}
+
+function movieDescription(item) {
+  const descriptions = {
+    "Duna: Parte Dois": "Paul Atreides se une a Chani e aos Fremen em uma jornada de vinganca, destino e sobrevivencia em Arrakis.",
+    "Godzilla Minus One": "Um Japao devastado encara uma nova ameaca colossal em meio ao trauma e a reconstrucao do pos-guerra.",
+    "Divertida Mente 2": "Riley entra na adolescencia e novas emocoes chegam para transformar tudo dentro da sua mente.",
+    Michael: "A historia da vida de Michael Jackson alem da musica, tracando sua jornada desde a descoberta de seu talento extraordinario.",
+    "Super Mario Galaxy: O Filme": "Depois de salvar o Reino dos Cogumelos, Mario e seus amigos encaram uma missao intergalactica contra um novo vilao ameacador.",
+    Origem: "Moradores presos em uma cidade misteriosa procuram respostas enquanto tentam sobreviver aos perigos que surgem ao anoitecer.",
+  };
+  if (item.source === "Google Drive") {
+    return "Filme hospedado no Google Drive e adicionado ao catalogo CineVS. Poster e detalhes completos podem ser atualizados depois.";
+  }
+  return item.description || descriptions[item.title] || "Uma selecao especial do catalogo CineVS para assistir agora, com aventura, emocao e muito entretenimento.";
+}
+
+function movieGenres(item) {
+  const { genre } = movieMetaParts(item);
+  const extras = {
+    "Super Mario Galaxy: O Filme": ["Aventura", "Comedia", "Animacao", "Fantasia", "Familia"],
+    "Duna: Parte Dois": ["Ficcao cientifica", "Aventura", "Drama"],
+    "Godzilla Minus One": ["Acao", "Drama", "Ficcao cientifica"],
+    Michael: ["Drama", "Musica"],
+  };
+  return extras[item.title] || [genre, "Aventura", "Drama"].filter(Boolean).slice(0, 4);
+}
+
+function relatedMoviesFor(item) {
+  const pool = movieCatalogItems().filter((movie) => movie.title !== item.title && !isSeriesItem(movie));
+  return pool.slice(0, 8);
+}
+
+function renderMovieDetails(item) {
+  const { year } = movieMetaParts(item);
+  const genres = movieGenres(item);
+  const related = relatedMoviesFor(item);
+  root.innerHTML = `
+    <main class="app">
+      ${header()}
+      <section class="movie-details-page">
+        <section class="movie-hero-detail" style="--movie-bg: url('${movieBackdrop(item)}')">
+          <div class="movie-detail-copy">
+            <h1>${item.title}</h1>
+            <div class="movie-meta">
+              <span class="movie-age-badge">L</span><span class="dot"></span><span class="imdb">IMDb</span>
+              <strong>${movieRating(item)}</strong><span class="dot"></span>
+              <strong>${year}</strong><span class="dot"></span>
+              <strong>1h 35min</strong>
+            </div>
+            <p>${movieDescription(item)}</p>
+            <div class="detail-genres">${genres.map((genre) => `<span>${genre}</span>`).join("")}</div>
+            <div class="detail-actions movie-detail-actions">
+              <button class="primary-detail-button movie-watch-button" type="button" data-play-movie>&#9658; Assistir</button>
+              <button class="secondary-detail-button" type="button">&#9655; Trailer</button>
+              <button class="square-action" type="button" aria-label="Adicionar">+</button>
+              <button class="square-action" type="button" aria-label="Curtir">&#128077;</button>
+              <button class="square-action" type="button" aria-label="Compartilhar">&#8984;</button>
+              <button class="square-action" type="button" aria-label="Comentar">&#9675;</button>
+            </div>
+          </div>
+        </section>
+        <section class="movie-related-section">
+          <h2>Relacionados</h2>
+          <div class="movie-related-row">
+            ${related.map(movieRelatedCard).join("")}
+          </div>
+        </section>
+      </section>
+    </main>
+  `;
+  bindHeaderActions();
+  bindMediaCards();
+  document.querySelector("[data-play-movie]")?.addEventListener("click", (event) => {
+    playMovie(item, event.currentTarget);
+  });
+  animatePageIn();
+}
+
+function movieRelatedCard(item) {
+  return `
+    <article class="movie-related-card" role="button" tabindex="0" data-media-title="${item.title}" aria-label="Abrir ${item.title}">
+      <img src="${movieBackdrop(item)}" alt="" onerror="this.onerror=null;this.src='${moviePlaceholderImage}';" />
+      <strong>${item.title}</strong>
+    </article>
+  `;
+}
+
+function playMovie(item, trigger = null) {
+  currentItem = {
+    ...item,
+    title: item.title,
+    episode: "Filme",
+    video: item.video || sampleVideoUrl,
+  };
+  if (!auth?.token) {
+    pendingPlaybackItem = currentItem;
+    navigateWithFeedback(trigger, "auth", currentItem);
+    return;
+  }
+
+  navigateWithFeedback(trigger, "player", currentItem);
+}
+
 function episodeCard(episode, index) {
   return `
     <article class="episode-card">
@@ -1020,7 +1316,7 @@ function renderPlayer(item) {
   `;
 
   document.querySelector("[data-back]").addEventListener("click", (event) => {
-    navigateWithFeedback(event.currentTarget, "details");
+    navigateWithFeedback(event.currentTarget, "details", currentItem);
   });
   animatePageIn();
 }
