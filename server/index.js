@@ -4,7 +4,9 @@ import cors from "cors";
 import express from "express";
 import jwt from "jsonwebtoken";
 import pg from "pg";
+import fs from "node:fs";
 import path from "node:path";
+import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 
 const app = express();
@@ -19,6 +21,7 @@ const allowedOrigins = (process.env.CLIENT_URL || "")
   .filter(Boolean);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const sitePath = path.resolve(__dirname, "..");
+const indexPath = path.join(sitePath, "index.html");
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
@@ -35,7 +38,7 @@ app.use(
         return;
       }
 
-      callback(new Error("Origem nao permitida pelo CORS."));
+      callback(new Error("Origem não permitida pelo CORS."));
     },
     credentials: true,
   }),
@@ -45,7 +48,7 @@ app.use(express.json());
 function ensureDatabaseConfigured(res) {
   if (!process.env.DATABASE_URL) {
     res.status(503).json({
-      message: "Banco de dados nao configurado. Configure DATABASE_URL no Railway.",
+      message: "Banco de dados não configurado. Configure DATABASE_URL no Railway.",
     });
     return false;
   }
@@ -55,7 +58,7 @@ function ensureDatabaseConfigured(res) {
 
 async function initDatabase() {
   if (!process.env.DATABASE_URL) {
-    console.warn("DATABASE_URL nao configurada. Configure o PostgreSQL do Railway no .env.");
+    console.warn("DATABASE_URL não configurada. Configure o PostgreSQL do Railway no .env.");
     return;
   }
 
@@ -98,19 +101,119 @@ function sanitizeUser(user) {
   };
 }
 
+function escapeForInlineScript(value = "") {
+  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function getGoogleCookies(response) {
+  const getSetCookie = response.headers.getSetCookie?.() || [];
+  const singleHeader = response.headers.get("set-cookie");
+  const cookies = getSetCookie.length ? getSetCookie : singleHeader ? [singleHeader] : [];
+
+  return cookies.map((cookie) => cookie.split(";")[0]).join("; ");
+}
+
+function decodeHtml(value = "") {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function findDriveConfirmUrl(html, fileId) {
+  const directMatch = html.match(/https:\/\/drive\.usercontent\.google\.com\/download\?[^"'<>\\]+/);
+  if (directMatch) {
+    return decodeHtml(directMatch[0]);
+  }
+
+  const relativeMatch = html.match(/href="(\/uc\?export=download[^"]+)"/);
+  if (relativeMatch) {
+    return `https://drive.google.com${decodeHtml(relativeMatch[1])}`;
+  }
+
+  const formActionMatch = html.match(/<form[^>]+id="download-form"[^>]+action="([^"]+)"/);
+  if (formActionMatch) {
+    const params = new URLSearchParams();
+    html.replace(
+      /<input[^>]+type="hidden"[^>]+name="([^"]+)"[^>]+value="([^"]*)"/g,
+      (_match, name, value) => {
+        params.set(decodeHtml(name), decodeHtml(value));
+        return "";
+      },
+    );
+
+    if (params.get("id") === fileId) {
+      return `${decodeHtml(formActionMatch[1])}?${params.toString()}`;
+    }
+  }
+
+  const confirmMatch = html.match(/confirm=([0-9A-Za-z_-]+)&/);
+  if (confirmMatch) {
+    const params = new URLSearchParams({
+      export: "download",
+      id: fileId,
+      confirm: confirmMatch[1],
+    });
+
+    return `https://drive.google.com/uc?${params.toString()}`;
+  }
+
+  return null;
+}
+
+async function fetchDriveFile(fileId, rangeHeader) {
+  const requestHeaders = {};
+  if (rangeHeader) {
+    requestHeaders.Range = rangeHeader;
+  }
+
+  const firstResponse = await fetch(
+    `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`,
+    { headers: requestHeaders },
+  );
+  const firstContentType = firstResponse.headers.get("content-type") || "";
+
+  if (!firstContentType.includes("text/html")) {
+    return firstResponse;
+  }
+
+  const html = await firstResponse.text();
+  const confirmUrl = findDriveConfirmUrl(html, fileId);
+
+  if (!confirmUrl) {
+    return firstResponse;
+  }
+
+  const cookie = getGoogleCookies(firstResponse);
+  const confirmHeaders = { ...requestHeaders };
+  if (cookie) {
+    confirmHeaders.Cookie = cookie;
+  }
+
+  return fetch(confirmUrl, { headers: confirmHeaders });
+}
+
+function renderIndexHtml() {
+  return fs
+    .readFileSync(indexPath, "utf8")
+    .replace("__GOOGLE_CLIENT_ID__", escapeForInlineScript(googleClientId || ""));
+}
+
 function requireAuth(req, res, next) {
   const header = req.headers.authorization;
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
 
   if (!token) {
-    return res.status(401).json({ message: "Token nao informado." });
+    return res.status(401).json({ message: "Token não informado." });
   }
 
   try {
     req.auth = jwt.verify(token, jwtSecret);
     next();
   } catch {
-    res.status(401).json({ message: "Sessao expirada. Entre novamente." });
+    res.status(401).json({ message: "Sessão expirada. Entre novamente." });
   }
 }
 
@@ -125,12 +228,12 @@ async function verifyGoogleCredential(credential) {
     payload.aud !== googleClientId ||
     !["true", true].includes(payload.email_verified)
   ) {
-    throw new Error("Token do Google invalido.");
+    throw new Error("Token do Google inválido.");
   }
 
   return {
     googleId: payload.sub,
-    name: payload.name || payload.email?.split("@")[0] || "Usuario Google",
+    name: payload.name || payload.email?.split("@")[0] || "Usuário Google",
     email: payload.email,
     avatarUrl: payload.picture || null,
   };
@@ -142,6 +245,44 @@ app.get("/api/health", (_req, res) => {
     databaseConfigured: Boolean(process.env.DATABASE_URL),
     googleConfigured: Boolean(googleClientId),
   });
+});
+
+app.get("/api/drive-video/:fileId", async (req, res) => {
+  const { fileId } = req.params;
+
+  if (!/^[0-9A-Za-z_-]{10,}$/.test(fileId)) {
+    return res.status(400).json({ message: "ID do vÃ­deo invÃ¡lido." });
+  }
+
+  try {
+    const driveResponse = await fetchDriveFile(fileId, req.headers.range);
+    const contentType = driveResponse.headers.get("content-type") || "";
+
+    if (!driveResponse.ok || contentType.includes("text/html") || !driveResponse.body) {
+      return res.status(502).json({
+        message:
+          "NÃ£o foi possÃ­vel carregar este vÃ­deo do Google Drive. Confira se o arquivo estÃ¡ compartilhado como pÃºblico.",
+      });
+    }
+
+    res.status(driveResponse.status === 206 ? 206 : 200);
+    res.setHeader("Content-Type", contentType || "video/mp4");
+    res.setHeader("Accept-Ranges", driveResponse.headers.get("accept-ranges") || "bytes");
+    res.setHeader("Cache-Control", "private, max-age=300");
+    res.setHeader("Content-Disposition", "inline");
+
+    ["content-length", "content-range"].forEach((header) => {
+      const value = driveResponse.headers.get(header);
+      if (value) {
+        res.setHeader(header, value);
+      }
+    });
+
+    Readable.fromWeb(driveResponse.body).pipe(res);
+  } catch (error) {
+    console.error("Erro ao carregar vÃ­deo do Drive:", error);
+    res.status(502).json({ message: "NÃ£o foi possÃ­vel iniciar o vÃ­deo agora." });
+  }
 });
 
 app.post("/api/auth/register", async (req, res) => {
@@ -172,11 +313,11 @@ app.post("/api/auth/register", async (req, res) => {
     res.status(201).json({ token: createToken(user), user: sanitizeUser(user) });
   } catch (error) {
     if (error.code === "23505") {
-      return res.status(409).json({ message: "Esse email ja esta cadastrado." });
+      return res.status(409).json({ message: "Esse email já está cadastrado." });
     }
 
     console.error(error);
-    res.status(500).json({ message: "Nao foi possivel criar sua conta." });
+    res.status(500).json({ message: "Não foi possível criar sua conta." });
   }
 });
 
@@ -202,19 +343,19 @@ app.post("/api/auth/login", async (req, res) => {
     const user = result.rows[0];
 
     if (!user?.password_hash) {
-      return res.status(401).json({ message: "Email ou senha invalidos." });
+      return res.status(401).json({ message: "Email ou senha inválidos." });
     }
 
     const passwordMatches = await bcrypt.compare(password, user.password_hash);
 
     if (!passwordMatches) {
-      return res.status(401).json({ message: "Email ou senha invalidos." });
+      return res.status(401).json({ message: "Email ou senha inválidos." });
     }
 
     res.json({ token: createToken(user), user: sanitizeUser(user) });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Nao foi possivel entrar agora." });
+    res.status(500).json({ message: "Não foi possível entrar agora." });
   }
 });
 
@@ -232,7 +373,7 @@ app.get("/api/auth/me", requireAuth, async (req, res) => {
   );
 
   if (!result.rows[0]) {
-    return res.status(404).json({ message: "Usuario nao encontrado." });
+    return res.status(404).json({ message: "Usuário não encontrado." });
   }
 
   res.json({ user: sanitizeUser(result.rows[0]) });
@@ -246,7 +387,7 @@ app.post("/api/auth/google", async (req, res) => {
   const { credential } = req.body;
 
   if (!credential) {
-    return res.status(400).json({ message: "Token do Google nao informado." });
+    return res.status(400).json({ message: "Token do Google não informado." });
   }
 
   try {
@@ -262,7 +403,7 @@ app.post("/api/auth/google", async (req, res) => {
     let user = existingUser.rows[0];
 
     if (user?.google_id && user.google_id !== googleUser.googleId) {
-      return res.status(409).json({ message: "Este email ja esta vinculado a outra conta Google." });
+      return res.status(409).json({ message: "Este email já está vinculado a outra conta Google." });
     }
 
     if (user) {
@@ -292,16 +433,21 @@ app.post("/api/auth/google", async (req, res) => {
     res.json({ token: createToken(user), user: sanitizeUser(user) });
   } catch (error) {
     console.error(error);
-    res.status(401).json({ message: error.message || "Nao foi possivel entrar com Google." });
+    res.status(401).json({ message: error.message || "Não foi possível entrar com Google." });
   }
 });
 
 app.use("/public", express.static(path.join(sitePath, "public")));
 app.use("/src", express.static(path.join(sitePath, "src")));
-app.use(express.static(sitePath));
+app.use(express.static(sitePath, { index: false }));
 
 app.use((_req, res) => {
-  res.sendFile(path.join(sitePath, "index.html"));
+  try {
+    res.type("html").send(renderIndexHtml());
+  } catch (error) {
+    console.error("Erro ao carregar index.html:", error);
+    res.status(500).send("Erro ao carregar a aplicação.");
+  }
 });
 
 initDatabase()

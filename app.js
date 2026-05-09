@@ -394,9 +394,14 @@ function readStorage(key) {
   }
 }
 
-function getGoogleDriveEmbedUrl(url) {
+function getGoogleDriveFileId(url) {
   const fileId = url.match(/drive\.google\.com\/file\/d\/([^/]+)/)?.[1];
-  return fileId ? `https://drive.google.com/file/d/${fileId}/preview?autoplay=1` : "";
+  return fileId || "";
+}
+
+function getGoogleDriveVideoUrl(url) {
+  const fileId = getGoogleDriveFileId(url);
+  return fileId ? `/api/drive-video/${encodeURIComponent(fileId)}` : "";
 }
 
 function getYoutubeBackgroundUrl(videoId) {
@@ -1444,15 +1449,15 @@ function playEpisode(episode, trigger = null) {
 }
 
 function renderPlayer(item) {
-  const driveEmbedUrl = getGoogleDriveEmbedUrl(item.video || "");
+  const driveVideoUrl = getGoogleDriveVideoUrl(item.video || "");
+  const videoUrl = driveVideoUrl || item.video || sampleVideoUrl;
   root.innerHTML = `
-    <section class="${driveEmbedUrl ? "player-page drive-player-page" : "player-page"}">
-      ${
-        driveEmbedUrl
-          ? `<iframe class="player-video player-drive-video" src="${driveEmbedUrl}" title="${item.title}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
-          : `<video class="player-video" src="${item.video || sampleVideoUrl}" poster="${item.image}" controls autoplay playsinline></video>`
-      }
+    <section class="${driveVideoUrl ? "player-page drive-player-page" : "player-page"}">
+      <video class="player-video ${driveVideoUrl ? "player-drive-video" : ""}" src="${videoUrl}" poster="${item.image}" controls autoplay playsinline preload="metadata"></video>
       <div class="player-vignette"></div>
+      <div class="player-error" data-player-error hidden>
+        Nao foi possivel iniciar este video. Confira se o arquivo do Google Drive esta publico e tente novamente.
+      </div>
       <header class="player-topbar">
         <div class="player-title-row">
           <button class="player-round-button" type="button" data-back aria-label="Voltar">‹</button>
@@ -1464,6 +1469,13 @@ function renderPlayer(item) {
 
   document.querySelector("[data-back]").addEventListener("click", (event) => {
     navigateWithFeedback(event.currentTarget, "details", currentItem);
+  });
+  const video = document.querySelector(".player-video");
+  const errorMessage = document.querySelector("[data-player-error]");
+  video?.addEventListener("error", () => {
+    if (errorMessage) {
+      errorMessage.hidden = false;
+    }
   });
   animatePageIn();
 }

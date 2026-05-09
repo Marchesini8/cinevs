@@ -2110,6 +2110,10 @@ a {
   transform: translate(-50%, -50%);
 }
 
+.player-error[hidden] {
+  display: none;
+}
+
 .player-controls {
   bottom: 0;
   padding: 0 2rem 1.65rem;
