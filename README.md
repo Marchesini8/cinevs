@@ -4,7 +4,7 @@ Base de streaming com frontend React/Vite, login/cadastro e backend Express usan
 
 ## Rodar localmente
 
-1. Instale as dependencias:
+1. Instale as dependências:
 
 ```bash
 npm install
@@ -32,13 +32,13 @@ API: http://127.0.0.1:3001
 
 ## Railway PostgreSQL
 
-O projeto ja esta pronto para deploy no Railway.
+O projeto já está pronto para deploy no Railway.
 
-1. Suba este repositorio no GitHub.
+1. Suba este repositório no GitHub.
 2. No Railway, clique em **New Project > Deploy from GitHub repo**.
-3. Selecione o repositorio `cinevs`.
+3. Selecione o repositório `cinevs`.
 4. Adicione um banco **PostgreSQL** no mesmo projeto.
-5. Configure as variaveis do servico web:
+5. Configure as variáveis do serviço web:
 
 ```env
 DATABASE_URL=${{Postgres.DATABASE_URL}}
@@ -50,16 +50,16 @@ VITE_GOOGLE_CLIENT_ID=179853125831-5nnp0kn44t6c2cq5k2f6cp2c1frkeaog.apps.googleu
 
 O Railway usa o `railway.json` para rodar `npm ci && npm run build` e iniciar com
 `npm run start`. Ao iniciar a API, ela cria automaticamente a tabela `users` se ela
-ainda nao existir.
+ainda não existir.
 
-Depois do primeiro deploy, copie o dominio gerado pelo Railway e atualize
-`CLIENT_URL` com esse endereco. Se usar dominio customizado, coloque ele tambem,
-separado por virgula.
+Depois do primeiro deploy, copie o domínio gerado pelo Railway e atualize
+`CLIENT_URL` com esse endereço. Se usar domínio customizado, coloque ele também,
+separado por vírgula.
 
 ## Google Auth
 
-O botao "Continuar com Google" usa Google Identity Services. No Google Cloud Console,
-adicione os dominios do app em **Authorized JavaScript origins**:
+O botão "Continuar com Google" usa Google Identity Services. No Google Cloud Console,
+adicione os domínios do app em **Authorized JavaScript origins**:
 
 ```txt
 http://localhost:5173
@@ -67,13 +67,13 @@ http://127.0.0.1:5173
 https://cinevs.up.railway.app
 ```
 
-Nao precisa de `GOOGLE_CLIENT_SECRET` para este fluxo. O backend recebe o token do
+Não precisa de `GOOGLE_CLIENT_SECRET` para este fluxo. O backend recebe o token do
 Google, valida o `GOOGLE_CLIENT_ID` e cria ou vincula a conta automaticamente.
 
-## Videos dos episodios
+## Vídeos dos episódios
 
-Nao envie arquivos `.mp4` grandes para o GitHub. O projeto ignora videos em
+Não envie arquivos `.mp4` grandes para o GitHub. O projeto ignora vídeos em
 `public/assets/*.mp4` para evitar erro no push e no deploy.
 
-Para trocar os videos dos episodios, hospede os arquivos em um storage externo e
-substitua as constantes de video em `src/main.jsx` por URLs HTTPS diretas.
+Para trocar os vídeos dos episódios, hospede os arquivos em um storage externo e
+substitua as constantes de vídeo em `app.js` por URLs HTTPS diretas.

@@ -1,7 +1,9 @@
 import { driveMoviesPart1 } from "./public/data/drive-movies-part1.js";
+import { profileAvatarGroups } from "./public/data/profile-avatars.js";
 
 const authStorageKey = "cinevs:auth";
 const selectedProfileStorageKey = "cinevs:selected-profile";
+const selectedAvatarStorageKey = "cinevs:selected-avatar";
 const moviePlaceholderImage = "./public/assets/movie-placeholder.svg";
 const googleClientId =
   window.GOOGLE_CLIENT_ID ||
@@ -33,6 +35,7 @@ let pendingPlaybackItem = null;
 let headerCleanup = null;
 let featuredIndex = 0;
 let authMode = "login";
+let catalogFilter = "all";
 
 const theBoysDetail = {
   title: "The Boys",
@@ -287,6 +290,41 @@ function movieCatalogItems() {
   return [...catalog, ...extraPosters, ...recentlyAdded, ...driveCatalog];
 }
 
+function animeCatalogItems() {
+  return homeRows.find((row) => row.title === "Animes")?.items || [];
+}
+
+function isAnimeItem(item) {
+  return item?.meta?.toLowerCase().includes("anime") || animeCatalogItems().some((anime) => anime.title === item?.title);
+}
+
+function isCatalogSeriesItem(item) {
+  const seriesTitles = new Set(["The Boys", "Supernatural", "Euphoria", "Invencivel", "Origem", "The Nanny"]);
+  const meta = item?.meta?.toLowerCase() || "";
+  return isSeriesItem(item) || seriesTitles.has(item?.title) || meta.includes("serie") || meta.includes("temporada");
+}
+
+function catalogItemsByFilter(filter = catalogFilter) {
+  const seriesItems = [...seriesCatalog, ...extraPosters.filter(isCatalogSeriesItem), ...recentlyAdded.filter(isCatalogSeriesItem)];
+  const animeItems = animeCatalogItems();
+  const movieItems = movieCatalogItems().filter((item) => !isCatalogSeriesItem(item) && !isAnimeItem(item));
+  const uniqueItems = (items) => [...new Map(items.map((item) => [item.title, item])).values()];
+
+  if (filter === "movies") {
+    return uniqueItems(movieItems);
+  }
+
+  if (filter === "series") {
+    return uniqueItems(seriesItems);
+  }
+
+  if (filter === "anime") {
+    return uniqueItems(animeItems);
+  }
+
+  return uniqueItems([...movieItems, ...seriesItems, ...animeItems]);
+}
+
 function allDisplayItems() {
   return [...seriesCatalog, ...movieCatalogItems(), ...homeRows.flatMap((row) => row.items)];
 }
@@ -394,9 +432,56 @@ function readStorage(key) {
   }
 }
 
+function escapeHtml(value = "") {
+  return String(value).replace(/[&<>"']/g, (char) => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[char];
+  });
+}
+
+function selectedAvatarUrl() {
+  return localStorage.getItem(selectedAvatarStorageKey) || auth?.user?.avatarUrl || "";
+}
+
+function userAvatarMarkup(user = auth?.user) {
+  const safeUser = user || { name: "Usuario" };
+  const avatarUrl = selectedAvatarUrl();
+  const userInitial = safeUser.name?.slice(0, 1).toUpperCase() || "U";
+
+  if (avatarUrl) {
+    return `<img src="${escapeHtml(avatarUrl)}" alt="" />`;
+  }
+
+  return `<span>${escapeHtml(userInitial)}</span>`;
+}
+
+function saveSelectedAvatar(avatarUrl) {
+  localStorage.setItem(selectedAvatarStorageKey, avatarUrl);
+
+  if (!auth?.user) {
+    return;
+  }
+
+  auth = {
+    ...auth,
+    user: {
+      ...auth.user,
+      avatarUrl,
+    },
+  };
+  localStorage.setItem(authStorageKey, JSON.stringify(auth));
+}
+
 function getGoogleDriveFileId(url) {
-  const fileId = url.match(/drive\.google\.com\/file\/d\/([^/]+)/)?.[1];
-  return fileId || "";
+  const fileIdFromPath = url.match(/drive\.google\.com\/file\/d\/([^/]+)/)?.[1];
+  const fileIdFromQuery = url.match(/[?&]id=([^&]+)/)?.[1];
+  return fileIdFromPath || fileIdFromQuery || "";
 }
 
 function getGoogleDriveVideoUrl(url) {
@@ -453,6 +538,19 @@ function icon(name) {
   return icons[name] || "";
 }
 
+function detailIcon(name) {
+  const icons = {
+    play: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7Z"/></svg>`,
+    playOutline: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7Z"/></svg>`,
+    plus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>`,
+    like: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10v11"/><path d="M15 5.5 14 10h5.2a2 2 0 0 1 1.95 2.45l-1.38 6A2 2 0 0 1 17.82 20H7"/><path d="M7 10H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3"/><path d="M14 10 9.8 20"/></svg>`,
+    share: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4"/><path d="m8.6 13.5 6.8 4"/></svg>`,
+    comment: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.8 8.8 0 0 1-3.9-.9L3 21l1.8-5.2A8.1 8.1 0 0 1 4 12a8.5 8.5 0 0 1 17-.5Z"/></svg>`,
+  };
+
+  return icons[name] || "";
+}
+
 function normalizeAuthMode(mode) {
   authMode = mode === "register" ? "register" : "login";
 }
@@ -500,8 +598,18 @@ function render() {
     return;
   }
 
+  if (view === "catalog") {
+    renderCatalog();
+    return;
+  }
+
   if (view === "account") {
     renderAccount();
+    return;
+  }
+
+  if (view === "avatars") {
+    renderAvatarPicker();
     return;
   }
 
@@ -515,10 +623,8 @@ function render() {
 
 function header() {
   const user = auth?.user || { name: "Usuário" };
-  const userInitial = user.name?.slice(0, 1).toUpperCase() || "U";
-  const avatarMarkup = user.avatarUrl
-    ? `<img src="${user.avatarUrl}" alt="" />`
-    : `<span>${userInitial}</span>`;
+  const avatarMarkup = userAvatarMarkup(user);
+  const isCatalogView = view === "catalog";
   return `
     <header class="topbar">
       <a class="brand" href="#" data-view="home" aria-label="CINEVS início">
@@ -538,47 +644,53 @@ function header() {
           </div>
         </div>
         <a class="${view === "home" ? "active" : ""}" href="#" data-view="home">Início</a>
-        <div class="nav-item">
-          <button class="nav-trigger" type="button">Filmes</button>
-          <div class="nav-dropdown" aria-label="Menu de filmes">
-            <div class="nav-dropdown-main">
-              <button type="button">Filmes por gênero</button>
-              <button type="button">Todos os filmes</button>
-              <button type="button">Filmes por ano</button>
-              <button type="button">Filmes por áudio</button>
-            </div>
-            <div class="nav-dropdown-list">
-              <button type="button">Ação</button>
-              <button type="button">Aventura</button>
-              <button type="button">Comédia</button>
-              <button type="button">Drama</button>
-              <button type="button">Ficção científica</button>
-              <button type="button">Terror</button>
-            </div>
-          </div>
-        </div>
-        <div class="nav-item">
-          <a class="${view === "series" ? "active" : ""} nav-trigger" href="#" data-view="series">Séries</a>
-          <div class="nav-dropdown" aria-label="Menu de séries">
-            <div class="nav-dropdown-main">
-              <button type="button">Séries por gênero</button>
-              <button type="button">Todas as séries</button>
-              <button type="button">Séries por ano</button>
-              <button type="button">Séries por áudio</button>
-            </div>
-            <div class="nav-dropdown-list">
-              <button type="button">Ação</button>
-              <button type="button">Aventura</button>
-              <button type="button">Comédia</button>
-              <button type="button">Drama</button>
-              <button type="button">Ficção científica</button>
-              <button type="button">Suspense</button>
-            </div>
-          </div>
-        </div>
-        <a href="#" data-view="home">Catálogo</a>
+        ${
+          isCatalogView
+            ? ""
+            : `
+              <div class="nav-item">
+                <button class="nav-trigger" type="button">Filmes</button>
+                <div class="nav-dropdown" aria-label="Menu de filmes">
+                  <div class="nav-dropdown-main">
+                    <button type="button">Filmes por gênero</button>
+                    <button type="button">Todos os filmes</button>
+                    <button type="button">Filmes por ano</button>
+                    <button type="button">Filmes por áudio</button>
+                  </div>
+                  <div class="nav-dropdown-list">
+                    <button type="button">Ação</button>
+                    <button type="button">Aventura</button>
+                    <button type="button">Comédia</button>
+                    <button type="button">Drama</button>
+                    <button type="button">Ficção científica</button>
+                    <button type="button">Terror</button>
+                  </div>
+                </div>
+              </div>
+              <div class="nav-item">
+                <a class="${view === "series" ? "active" : ""} nav-trigger" href="#" data-view="series">Séries</a>
+                <div class="nav-dropdown" aria-label="Menu de séries">
+                  <div class="nav-dropdown-main">
+                    <button type="button">Séries por gênero</button>
+                    <button type="button">Todas as séries</button>
+                    <button type="button">Séries por ano</button>
+                    <button type="button">Séries por áudio</button>
+                  </div>
+                  <div class="nav-dropdown-list">
+                    <button type="button">Ação</button>
+                    <button type="button">Aventura</button>
+                    <button type="button">Comédia</button>
+                    <button type="button">Drama</button>
+                    <button type="button">Ficção científica</button>
+                    <button type="button">Suspense</button>
+                  </div>
+                </div>
+              </div>
+            `
+        }
+        <a class="${view === "catalog" ? "active" : ""}" href="#" data-view="catalog">Catálogo</a>
         <a href="#" data-view="home">Minha Lista</a>
-        <a href="#" data-view="home">Canais</a>
+        ${isCatalogView ? "" : `<a href="#" data-view="home">Canais</a>`}
       </nav>
       <div class="profile-actions">
         <div class="notification-wrap">
@@ -608,12 +720,12 @@ function header() {
         <div class="profile-menu">
           <button class="avatar" aria-label="Perfil">${avatarMarkup}</button>
           <div class="profile-dropdown" role="menu">
-            <button class="profile-summary" type="button" role="menuitem">
+            <button class="profile-summary" type="button" role="menuitem" data-view="avatars">
               <span class="menu-avatar">${avatarMarkup}</span>
               <span><strong>${user.name || "Usuário"}</strong><small>Alterar perfil</small></span>
             </button>
             <button type="button" role="menuitem" data-view="account">${icon("user")}Conta</button>
-            <button type="button" role="menuitem">${icon("profiles")}Perfis</button>
+            <button type="button" role="menuitem" data-view="avatars">${icon("profiles")}Perfis</button>
             <button type="button" role="menuitem">${icon("settings")}Configurações</button>
             <button class="danger" type="button" role="menuitem" data-action="logout">${icon("logout")}Sair da conta</button>
           </div>
@@ -645,6 +757,7 @@ function bindHeaderActions() {
   document.querySelector("[data-action='logout']")?.addEventListener("click", () => {
     localStorage.removeItem(authStorageKey);
     localStorage.removeItem(selectedProfileStorageKey);
+    localStorage.removeItem(selectedAvatarStorageKey);
     auth = null;
     pendingPlaybackItem = null;
     setView("home");
@@ -769,10 +882,7 @@ function bindHeaderActions() {
 
 function renderAccount() {
   const user = auth?.user || { name: "Usuário", email: "usuario@cinevs.com" };
-  const userInitial = user.name?.slice(0, 1).toUpperCase() || "U";
-  const avatarMarkup = user.avatarUrl
-    ? `<img src="${user.avatarUrl}" alt="" />`
-    : `<span>${userInitial}</span>`;
+  const avatarMarkup = userAvatarMarkup(user);
   const lastAccess = new Date().toLocaleDateString("pt-BR");
 
   root.innerHTML = `
@@ -804,7 +914,7 @@ function renderAccount() {
             <section class="account-panel profiles-panel">
               <div class="panel-header">
                 <h2>Perfis</h2>
-                <button type="button">Gerenciar perfis <span>›</span></button>
+                <button type="button" data-view="avatars">Gerenciar perfis <span>›</span></button>
               </div>
               <article class="profile-row-card">
                 <span class="profile-photo">${avatarMarkup}</span>
@@ -844,6 +954,60 @@ function renderAccount() {
     </main>
   `;
   bindHeaderActions();
+  animatePageIn();
+}
+
+function avatarButtonMarkup(avatar) {
+  const selectedClass = selectedAvatarUrl() === avatar.image ? " selected" : "";
+  return `
+    <button class="avatar-choice${selectedClass}" type="button" data-avatar-url="${escapeHtml(avatar.image)}" aria-label="Escolher avatar ${escapeHtml(avatar.title)}" title="${escapeHtml(avatar.title)}">
+      <img src="${escapeHtml(avatar.image)}" alt="" loading="lazy" onerror="this.closest('button').hidden=true" />
+    </button>
+  `;
+}
+
+function renderAvatarPicker() {
+  headerCleanup?.();
+  headerCleanup = null;
+
+  root.innerHTML = `
+    <main class="avatar-page">
+      <header class="profile-subheader">
+        <button type="button" data-view="account">Voltar</button>
+        <h1>Escolha seu avatar</h1>
+        <span></span>
+      </header>
+      <section class="avatar-groups" aria-label="Avatares disponiveis">
+        ${profileAvatarGroups
+          .map(
+            (group) => `
+              <section class="avatar-group">
+                <h2>${escapeHtml(group.title)}</h2>
+                <div class="avatar-row">
+                  ${group.avatars.map(avatarButtonMarkup).join("")}
+                </div>
+              </section>
+            `,
+          )
+          .join("")}
+      </section>
+    </main>
+  `;
+
+  document.querySelectorAll("[data-view]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      navigateWithFeedback(button, button.dataset.view);
+    });
+  });
+
+  document.querySelectorAll("[data-avatar-url]").forEach((button) => {
+    button.addEventListener("click", () => {
+      saveSelectedAvatar(button.dataset.avatarUrl);
+      setView("account");
+    });
+  });
+
   animatePageIn();
 }
 
@@ -1212,6 +1376,60 @@ function renderSeries() {
   animatePageIn();
 }
 
+function catalogFilterButton(filter, label) {
+  return `
+    <button class="${catalogFilter === filter ? "active" : ""}" type="button" data-catalog-filter="${filter}">
+      ${label}
+    </button>
+  `;
+}
+
+function catalogCard(item) {
+  return `
+    <article class="catalog-card" role="button" tabindex="0" data-media-title="${item.title}" aria-label="Abrir ${item.title}">
+      <img src="${item.poster || item.image || moviePlaceholderImage}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${moviePlaceholderImage}';" />
+      <strong>${item.title}</strong>
+    </article>
+  `;
+}
+
+function renderCatalog() {
+  const items = catalogItemsByFilter();
+
+  root.innerHTML = `
+    <main class="app catalog-app">
+      ${header()}
+      <section class="catalog-page">
+        <div class="catalog-toolbar" aria-label="Categorias do catalogo">
+          <div class="catalog-filter-pills">
+            ${catalogFilterButton("all", "Todos")}
+            ${catalogFilterButton("movies", "Filmes")}
+            ${catalogFilterButton("series", "Séries")}
+            ${catalogFilterButton("anime", "Animes")}
+          </div>
+          <button class="catalog-filter-button" type="button" aria-label="Filtros">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M7 7v10"/><path d="M17 7v10"/><path d="M4 17h16"/></svg>
+            <span>Filtros</span>
+          </button>
+        </div>
+        <div class="catalog-grid">
+          ${items.map(catalogCard).join("")}
+        </div>
+      </section>
+    </main>
+  `;
+
+  bindHeaderActions();
+  document.querySelectorAll("[data-catalog-filter]").forEach((button) => {
+    button.addEventListener("click", () => {
+      catalogFilter = button.dataset.catalogFilter;
+      renderCatalog();
+    });
+  });
+  bindMediaCards();
+  animatePageIn();
+}
+
 function renderDetails() {
   if (currentItem && !isSeriesItem(currentItem)) {
     renderMovieDetails(currentItem);
@@ -1240,8 +1458,12 @@ function renderDetails() {
             <p>${theBoysDetail.synopsis}</p>
             <div class="detail-genres">${theBoysDetail.genres.map((genre) => `<span>${genre}</span>`).join("")}</div>
             <div class="detail-actions">
-              <button class="primary-detail-button" type="button" data-play-first>▶ Assistir T${selectedSeason}-E1</button>
-              <button class="secondary-detail-button" type="button">Trailer</button>
+              <button class="primary-detail-button" type="button" data-play-first>${detailIcon("play")}<span>Continuar T${selectedSeason}-E1</span></button>
+              <button class="secondary-detail-button" type="button">${detailIcon("playOutline")}<span>Trailer</span></button>
+              <button class="square-action" type="button" aria-label="Adicionar">${detailIcon("plus")}</button>
+              <button class="square-action" type="button" aria-label="Curtir">${detailIcon("like")}</button>
+              <button class="square-action" type="button" aria-label="Compartilhar">${detailIcon("share")}</button>
+              <button class="square-action" type="button" aria-label="Comentar">${detailIcon("comment")}</button>
             </div>
           </div>
         </section>
@@ -1369,12 +1591,12 @@ function renderMovieDetails(item) {
             <p>${movieDescription(item)}</p>
             <div class="detail-genres">${genres.map((genre) => `<span>${genre}</span>`).join("")}</div>
             <div class="detail-actions movie-detail-actions">
-              <button class="primary-detail-button movie-watch-button" type="button" data-play-movie>&#9658; Assistir</button>
-              <button class="secondary-detail-button" type="button">&#9655; Trailer</button>
-              <button class="square-action" type="button" aria-label="Adicionar">+</button>
-              <button class="square-action" type="button" aria-label="Curtir">&#128077;</button>
-              <button class="square-action" type="button" aria-label="Compartilhar">&#8984;</button>
-              <button class="square-action" type="button" aria-label="Comentar">&#9675;</button>
+              <button class="primary-detail-button movie-watch-button" type="button" data-play-movie>${detailIcon("play")}<span>Assistir</span></button>
+              <button class="secondary-detail-button" type="button">${detailIcon("playOutline")}<span>Trailer</span></button>
+              <button class="square-action" type="button" aria-label="Adicionar">${detailIcon("plus")}</button>
+              <button class="square-action" type="button" aria-label="Curtir">${detailIcon("like")}</button>
+              <button class="square-action" type="button" aria-label="Compartilhar">${detailIcon("share")}</button>
+              <button class="square-action" type="button" aria-label="Comentar">${detailIcon("comment")}</button>
             </div>
           </div>
         </section>
